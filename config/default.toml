@@ -1,0 +1,45 @@
+# Default configuration. Values marked (PROPOSED) are defaults awaiting your confirmation.
+# Secrets do NOT live here - they come from environment variables (.env).
+
+[account]
+initial_balance = 100.0        # USD, demo account
+fixed_lot = 0.01               # MVP trades one fixed lot size
+max_drawdown_pct = 30.0        # research-gate failure / risk-engine hard stop
+currency = "USD"
+
+[instruments]
+# MT5 symbol names; brokers sometimes add suffixes (e.g. "EURUSD.m") - adjust via symbol_suffix.
+symbols = ["BTCUSD", "XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD"]  # (PROPOSED) 5 majors
+symbol_suffix = ""
+
+[timeframes]
+primary = ["1h", "4h", "1d"]
+
+[strategy_v1]
+name = "ema_trend_atr"
+version = "1.0.0"
+ema_fast = 20                  # (PROPOSED)
+ema_slow = 50                  # (PROPOSED)
+ema_trend = 200                # trend filter (PROPOSED)
+atr_period = 14
+atr_stop_mult = 2.0            # stop = entry -/+ 2 * ATR (PROPOSED)
+allow_short = true
+
+[costs]
+# Per-instrument spread/commission/slippage are filled in at Milestone 6 from real broker specs.
+default_slippage_pips = 0.5    # (PROPOSED)
+default_commission_per_lot = 0.0
+
+[risk]
+max_risk_per_trade_pct = 5.0   # of current balance; with $100 that is $5 (PROPOSED)
+max_open_positions = 3         # (PROPOSED)
+max_total_exposure_lots = 0.05 # (PROPOSED)
+daily_loss_limit_pct = 10.0    # (PROPOSED)
+kill_switch_drawdown_pct = 30.0
+
+[research_gate]
+# Strategy V1 must pass ALL of these out-of-sample to continue (PROPOSED - confirm).
+min_oos_profit_factor = 1.2
+min_oos_trades = 30
+max_oos_drawdown_pct = 30.0
+max_param_sensitivity_drop_pct = 50.0   # perf must not collapse when params shift +/-20%

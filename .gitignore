@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+*.egg-info/
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# data & outputs (reproducible from scripts; never commit broker data or credentials)
+data_store/
+outputs/
+*.parquet
+*.log
+
+# notebooks
+.ipynb_checkpoints/
