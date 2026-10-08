@@ -157,3 +157,53 @@ def test_report_summary_and_dict(ohlcv):
     report = validate_ohlcv(ohlcv.drop(ohlcv.index[[10]]), "BTCUSD", "1h")
     assert "BTCUSD 1h" in report.summary()
     assert report.to_dict()["ok"] is True
+
+
+# ---------------------------------------------------- recurring broker breaks (real-data finding)
+
+
+@pytest.fixture
+def long_gold(make_ohlcv):
+    from datetime import UTC, datetime
+
+    return make_ohlcv(
+        "XAUUSD", "1h", start=datetime(2021, 1, 4, tzinfo=UTC), end=datetime(2023, 1, 2, tzinfo=UTC)
+    )
+
+
+def test_daily_broker_break_is_not_a_data_error(long_gold):
+    """Real finding: gold has a daily break (e.g. 22:00 UTC); that must not fail validation."""
+    broken = long_gold[long_gold.index.hour != 22]
+    report = validate_ohlcv(broken, "XAUUSD", "1h")
+    assert report.ok, report.summary()
+    detail = (
+        next(i.detail for i in report.issues if i.code == "missing_candles")
+        if report.issues
+        else ""
+    )
+    assert report.issues == [] or "recurring broker-break" in detail
+
+
+def test_one_long_outage_is_still_an_error(long_gold):
+    """A single contiguous hole must NOT be mistaken for a routine closure."""
+    n = len(long_gold)
+    outage = long_gold.drop(long_gold.index[int(n * 0.3) : int(n * 0.3) + int(n * 0.12)])
+    report = validate_ohlcv(outage, "XAUUSD", "1h")
+    assert not report.ok and "missing_candles" in report.codes()
+
+
+def test_scattered_random_holes_still_flagged(long_gold):
+    rng = np.random.default_rng(0)
+    keep = rng.random(len(long_gold)) > 0.06  # 6% randomly missing
+    report = validate_ohlcv(long_gold[keep], "XAUUSD", "1h")
+    assert not report.ok
+
+
+def test_crypto_never_gets_break_slots(make_ohlcv):
+    from datetime import UTC, datetime
+
+    btc = make_ohlcv(
+        "BTCUSD", "1h", start=datetime(2021, 1, 4, tzinfo=UTC), end=datetime(2023, 1, 2, tzinfo=UTC)
+    )
+    report = validate_ohlcv(btc[btc.index.hour != 22], "BTCUSD", "1h")
+    assert not report.ok  # BTC trades 24/7: a missing daily hour is a real problem

@@ -8,7 +8,12 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
-from tradingbot.data.calendar import expected_closed_mask
+from tradingbot.data.calendar import (
+    expected_closed_mask,
+    is_24_7,
+    recurring_closure_slots,
+    slot_name,
+)
 from tradingbot.data.normalizer import OHLCV_COLUMNS
 from tradingbot.timeframes import timeframe_freq
 
@@ -172,6 +177,19 @@ def validate_ohlcv(
     if len(missing):
         closed = expected_closed_mask(missing, symbol, timeframe)
         unexpected = missing[~closed]
+        recurring_note = ""
+        if not is_24_7(symbol) and len(unexpected):
+            open_grid = full[~expected_closed_mask(full, symbol, timeframe)]
+            slots = recurring_closure_slots(open_grid, unexpected)
+            unexpected_slot = np.asarray(unexpected.dayofweek) * 24 + np.asarray(unexpected.hour)
+            routine = slots[unexpected_slot]
+            if routine.any():
+                names = ", ".join(slot_name(int(i)) for i in np.flatnonzero(slots)[:6])
+                recurring_note = (
+                    f"; {int(routine.sum())} candles in recurring broker-break slots "
+                    f"ignored ({names})"
+                )
+                unexpected = unexpected[~routine]
         frac = len(unexpected) / max(len(full), 1)
         sev: Severity = "error" if frac > max_missing_fraction else "warning"
         add(
@@ -179,7 +197,7 @@ def validate_ohlcv(
             sev,
             len(unexpected),
             f"{frac:.2%} of expected candles missing (limit {max_missing_fraction:.0%}); "
-            f"{int(closed.sum())} weekend/closed candles ignored",
+            f"{int(closed.sum())} weekend/closed candles ignored{recurring_note}",
             [_fmt(t) for t in unexpected[:3]],
         )
     off_grid = clean_idx.difference(full)

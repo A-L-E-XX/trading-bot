@@ -24,7 +24,7 @@ Datasets that fail validation are **not saved** unless you pass `--allow-invalid
 | Candles not starting on the hour | error |
 | NaN / infinite values, price ≤ 0, negative volume | error |
 | high < low, high < max(open, close), low > min(open, close) | error |
-| Missing candles (weekend gaps are ignored for forex/gold; crypto trades 24/7) | warning, **error above 2%** |
+| Missing candles. Weekends and **recurring broker breaks** (same weekly time slot missing across the dataset, e.g. gold's daily break) are ignored for forex/gold; crypto trades 24/7 so nothing is ignored | warning, **error above 2%** |
 | Timestamps off the expected grid (often a daylight-saving shift) | warning |
 | Close-to-close move > 30%, or more than 5% flat candles | warning |
 
