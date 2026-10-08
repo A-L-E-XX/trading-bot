@@ -45,9 +45,15 @@ def test_csv_collector_utc_offset_and_missing_file(tmp_path):
 
 # ------------------------------------------------------------------ MT5 collector (fake terminal)
 
-Account = namedtuple("Account", "login server currency trade_mode")
+Account = namedtuple("Account", "login server currency trade_mode balance leverage")
 Sym = namedtuple("Sym", "name")
 Tick = namedtuple("Tick", "time")
+SymInfo = namedtuple(
+    "SymInfo",
+    "digits point trade_contract_size trade_tick_size trade_tick_value volume_min volume_max "
+    "volume_step spread spread_float currency_base currency_profit currency_margin "
+    "trade_stops_level swap_long swap_short trade_calc_mode path",
+)
 
 
 class FakeMT5:
@@ -70,13 +76,37 @@ class FakeMT5:
 
     def account_info(self):
         mode = self.ACCOUNT_TRADE_MODE_DEMO if self.demo else self.ACCOUNT_TRADE_MODE_REAL
-        return Account(123, "Fake-Demo", "USD", mode)
+        return Account(123, "Fake-Demo", "USD", mode, 100.0, 200)
 
     def symbols_get(self):
         return [Sym("EURUSD.m"), Sym("EURUSDpro"), Sym("BTCUSD"), Sym("XAUUSD")]
 
     def symbol_select(self, name, enable):
         return name != "NOPE"
+
+    def symbol_info(self, name):
+        if name == "NOPE":
+            return None
+        return SymInfo(
+            5,
+            1e-05,
+            100000.0,
+            1e-05,
+            1.0,
+            0.01,
+            200.0,
+            0.01,
+            12,
+            False,
+            "EUR",
+            "USD",
+            "USD",
+            0,
+            0.0,
+            0.0,
+            0,
+            "Forex\\EURUSD",
+        )
 
     def symbol_info_tick(self, name):
         now = datetime.now(UTC).timestamp() + self.offset * 3600
@@ -204,3 +234,29 @@ def test_cli_validate_flags_tampered_data(tmp_path, capsys):
 
 def test_cli_csv_source_requires_directory(tmp_path):
     assert main(["--data-dir", str(tmp_path), "download", "--source", "csv"]) == 2
+
+
+def test_mt5_specs_include_contract_size_and_account():
+    col = MT5Collector(mt5_module=FakeMT5(), symbol_suffix="m")
+    specs = col.symbol_specs("EURUSD")
+    assert specs["trade_contract_size"] == 100000.0 and specs["volume_step"] == 0.01
+    assert specs["broker_symbol"] == "EURUSDm"
+    with pytest.raises(MT5Error):
+        MT5Collector(mt5_module=FakeMT5()).symbol_specs("NOPE")
+
+
+def test_cli_specs_writes_json(tmp_path, monkeypatch, capsys):
+    import json
+
+    import tradingbot.data.cli as cli
+
+    monkeypatch.setattr(
+        cli, "_mt5_collector", lambda a, c, s: MT5Collector(mt5_module=FakeMT5(), symbol_suffix="m")
+    )
+    out = tmp_path / "specs.json"
+    assert main(["specs", "--out", str(out)]) == 0
+    data = json.loads(out.read_text())
+    assert data["account"]["demo"] is True
+    assert set(data["symbols"]) >= {"BTCUSD", "XAUUSD", "EURUSD"}
+    assert data["symbols"]["EURUSD"]["trade_contract_size"] == 100000.0
+    assert "Saved to" in capsys.readouterr().out

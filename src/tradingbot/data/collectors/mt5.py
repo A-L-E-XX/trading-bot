@@ -102,6 +102,32 @@ class MT5Collector:
         delta_h = (server_now - datetime.now(UTC).replace(tzinfo=None)).total_seconds() / 3600
         return float(round(delta_h))
 
+    # -- instrument specifications (used by the backtester for realistic P&L and costs) ----------
+    SPEC_FIELDS = (
+        "digits", "point", "trade_contract_size", "trade_tick_size", "trade_tick_value",
+        "volume_min", "volume_max", "volume_step", "spread", "spread_float",
+        "currency_base", "currency_profit", "currency_margin", "trade_stops_level",
+        "swap_long", "swap_short", "trade_calc_mode", "path",
+    )  # fmt: skip
+
+    def symbol_specs(self, symbol: str) -> dict:
+        info = self._mt5.symbol_info(self.broker_symbol(symbol))
+        if info is None:
+            raise MT5Error(f"no symbol info for {self.broker_symbol(symbol)!r}")
+        specs = {f: getattr(info, f, None) for f in self.SPEC_FIELDS}
+        specs["broker_symbol"] = self.broker_symbol(symbol)
+        return specs
+
+    def account_summary(self) -> dict:
+        info = self.account_info()
+        return {
+            "currency": getattr(info, "currency", None),
+            "balance": getattr(info, "balance", None),
+            "leverage": getattr(info, "leverage", None),
+            "server": getattr(info, "server", None),
+            "demo": self.account_is_demo(),
+        }
+
     # -- data -----------------------------------------------------------------------
     def fetch(self, symbol: str, timeframe: str, start: datetime, end: datetime) -> pd.DataFrame:
         self.connect()

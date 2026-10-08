@@ -9,8 +9,10 @@ info        list stored datasets
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from datetime import UTC, datetime
+from pathlib import Path
 
 from tradingbot.config import load_config, load_settings
 from tradingbot.data.collectors import CSVCollector, MT5Collector, MT5Error, SyntheticCollector
@@ -117,6 +119,34 @@ def cmd_validate(args, cfg, settings) -> int:
     return 1 if bad else 0
 
 
+def cmd_specs(args, cfg, settings) -> int:
+    col = _mt5_collector(args, cfg, settings)
+    try:
+        col.connect()
+        out = {
+            "generated_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "account": col.account_summary(),
+            "symbols": {s: col.symbol_specs(s) for s in cfg.instruments.symbols},
+        }
+    except MT5Error as exc:
+        print(f"MT5 error: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        col.close()
+    path = Path(args.out)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    acct = out["account"]
+    print(f"Account: {acct['currency']} balance={acct['balance']} leverage=1:{acct['leverage']}")
+    for sym, sp in out["symbols"].items():
+        print(
+            f"  {sym:7} contract={sp['trade_contract_size']} lot_min={sp['volume_min']} "
+            f"step={sp['volume_step']} spread={sp['spread']}pts digits={sp['digits']}"
+        )
+    print(f"\nSaved to {path}")
+    return 0
+
+
 def cmd_info(args, cfg, settings) -> int:
     store = DatasetStore(args.data_dir or settings.data_dir)
     for symbol, tf in store.list_datasets():
@@ -136,6 +166,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="command", required=True)
 
     sub.add_parser("mt5-check", help="check MT5 demo connection and symbol names")
+    sp = sub.add_parser("specs", help="save broker contract specs (lot size, spread...) to JSON")
+    sp.add_argument("--out", default="config/instrument_specs.json")
 
     d = sub.add_parser("download", help="build datasets")
     d.add_argument("--source", choices=["mt5", "csv", "synthetic"], required=True)
@@ -165,6 +197,7 @@ def main(argv: list[str] | None = None) -> int:
     cfg, settings = load_config(), load_settings()
     handler = {
         "mt5-check": cmd_mt5_check,
+        "specs": cmd_specs,
         "download": cmd_download,
         "validate": cmd_validate,
         "info": cmd_info,
