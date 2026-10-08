@@ -17,6 +17,15 @@ uv run ruff format --check . # formatting
 
 On the Windows machine that runs MT5, also run `uv sync --extra mt5`.
 
+## Get data
+
+```bash
+uv run tb-data download --source synthetic --symbols EURUSD --start 2023-01-01   # fake data, to try it out
+uv run tb-data mt5-check          # Windows + MT5 demo: check connection and symbol names
+```
+
+See [docs/data.md](docs/data.md) for real MT5 data.
+
 ## Layout
 
 `src/tradingbot/` holds data, features, strategies, signals, backtesting, risk, execution, portfolio and analytics. Config is in `config/default.toml`; secrets come from `.env`.
@@ -25,4 +34,6 @@ On the Windows machine that runs MT5, also run `uv sync --extra mt5`.
 
 - [x] M1 Product definition
 - [x] M2 Development environment
-- [ ] M3 – M14
+- [x] M3 Market data pipeline ([docs/data.md](docs/data.md))
+- [x] M4 Feature engine
+- [ ] M5 – M14
