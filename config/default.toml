@@ -10,7 +10,7 @@ currency = "USD"
 [instruments]
 # MT5 symbol names; brokers sometimes add suffixes (e.g. "EURUSD.m") - adjust via symbol_suffix.
 symbols = ["BTCUSD", "XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD"]  # (PROPOSED) 5 majors
-symbol_suffix = ""
+symbol_suffix = "m"   # Exness (cent/"m" symbols): EURUSD -> EURUSDm. Use "" for brokers without a suffix
 
 [timeframes]
 primary = ["1h", "4h", "1d"]
