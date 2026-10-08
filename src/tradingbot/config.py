@@ -93,7 +93,11 @@ class Settings(BaseSettings):
     """Environment-based settings and secrets (prefix TB_). Never logged or committed."""
 
     model_config = SettingsConfigDict(
-        env_prefix="TB_", env_file=".env", env_file_encoding="utf-8", extra="ignore"
+        env_prefix="TB_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        env_ignore_empty=True,  # blank lines like "TB_MT5_LOGIN=" mean "not set"
     )
 
     mode: Literal["backtest", "paper"] = "backtest"  # live is deliberately not an option
