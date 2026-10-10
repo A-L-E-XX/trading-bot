@@ -126,6 +126,9 @@ class _Runner:
             max_drawdown_limit_pct=self.app.account.max_drawdown_pct,
             max_risk_per_trade_pct=self.app.risk.max_risk_per_trade_pct,
             enforce_risk_limit=True,
+            lot_value_scale=self.app.account.lot_value_scale,
+            risk_sizing=self.app.account.risk_sizing,
+            max_lots=self.app.account.max_lots,
         )
         return run_backtest(window, EmaTrendAtrStrategy(p), self.spec, cfg, self.symbol, self.tf)
 

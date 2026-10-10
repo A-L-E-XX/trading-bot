@@ -19,6 +19,11 @@ class AccountConfig(BaseModel):
     fixed_lot: float = Field(gt=0)
     max_drawdown_pct: float = Field(gt=0, le=100)
     currency: str = "USD"
+    # Cent accounts: one lot is worth 1/100 (0.01). Verify against your broker's specs.
+    lot_value_scale: float = Field(default=1.0, gt=0)
+    # True: size each trade so its stop risks risk.max_risk_per_trade_pct (instead of fixed_lot)
+    risk_sizing: bool = False
+    max_lots: float | None = Field(default=None, gt=0)
 
 
 class InstrumentsConfig(BaseModel):
@@ -122,3 +127,30 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH) -> AppConfig:
 
 def load_settings() -> Settings:
     return Settings()
+
+
+def with_account_overrides(
+    app: AppConfig,
+    balance: float | None = None,
+    lot_scale: float | None = None,
+    risk_sizing: bool | None = None,
+    max_lots: float | None = None,
+    risk_pct: float | None = None,
+) -> AppConfig:
+    """Copy of the config with command-line account/risk overrides applied (None = keep)."""
+    acct = {
+        k: v
+        for k, v in {
+            "initial_balance": balance,
+            "lot_value_scale": lot_scale,
+            "risk_sizing": risk_sizing,
+            "max_lots": max_lots,
+        }.items()
+        if v is not None
+    }
+    out = app.model_copy(update={"account": app.account.model_copy(update=acct)})
+    if risk_pct is not None:
+        out = out.model_copy(
+            update={"risk": out.risk.model_copy(update={"max_risk_per_trade_pct": risk_pct})}
+        )
+    return out

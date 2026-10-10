@@ -13,7 +13,7 @@ import pandas as pd
 from tradingbot.backtesting.costs import CostModel
 from tradingbot.backtesting.instruments import load_specs
 from tradingbot.backtesting.runner import DEFAULT_SPECS_PATH
-from tradingbot.config import load_config, load_settings
+from tradingbot.config import load_config, load_settings, with_account_overrides
 from tradingbot.data.storage import DatasetIntegrityError, DatasetStore
 from tradingbot.research.gate import CHECKS, GateResult, evaluate_gate
 
@@ -34,6 +34,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out-dir", default="outputs/research")
     p.add_argument("--oos-fraction", type=float, default=0.4, help="share of history held out")
     p.add_argument("--mc-sims", type=int, default=2000)
+    p.add_argument("--balance", type=float, help="starting balance, e.g. 20")
+    p.add_argument(
+        "--lot-scale", type=float, help="value of one lot vs the spec (cent account: 0.01)"
+    )
+    p.add_argument(
+        "--risk-sizing", action="store_true", help="size each trade by risk %% of balance"
+    )
+    p.add_argument("--risk-pct", type=float, help="per-trade risk limit in %% of balance")
+    p.add_argument("--max-lots", type=float, help="cap on lots per trade when sizing by risk")
     return p
 
 
@@ -82,6 +91,14 @@ def write_report(out_dir: Path, results: list[GateResult], app) -> pd.DataFrame:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     app, settings = load_config(), load_settings()
+    app = with_account_overrides(
+        app,
+        args.balance,
+        args.lot_scale,
+        True if args.risk_sizing else None,
+        args.max_lots,
+        args.risk_pct,
+    )
     store = DatasetStore(args.data_dir or settings.data_dir)
     specs = load_specs(args.specs)
     costs = CostModel.from_config(app.costs)

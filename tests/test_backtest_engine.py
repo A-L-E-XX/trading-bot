@@ -345,3 +345,42 @@ def test_enforced_risk_limit_skips_oversized_entries_and_keeps_small_ones():
     # without enforcement the big one is taken (and only reported)
     r = run_backtest(bars(px), big, EUR, replace(limit, enforce_risk_limit=False), "EURUSD", "1h")
     assert len(r.trades) == 1 and r.metrics["trades_over_risk_limit"] == 1
+
+
+def _sized(**kw):
+    from dataclasses import replace
+
+    base = replace(cfg(balance=20.0), risk_sizing=True, max_risk_per_trade_pct=5.0)
+    return replace(base, **kw)
+
+
+def test_risk_sizing_rounds_lots_down_to_the_step():
+    # $20 x 5% = $1 risk. EUR stop 0.0010 on a normal lot (100k units) = $100 per lot -> 0.01 lot
+    # Cent account (scale 0.01): $1 per lot -> 1.00 lot, not 1.0001 etc.
+    px = [1.10] * 6
+    sc = Scripted({2: [(A.ENTER_LONG, 0.0010)]})
+    r = run_backtest(bars(px), sc, EUR, _sized(lot_value_scale=0.01), "EURUSD", "1h")
+    assert r.trades.iloc[0]["lots"] == pytest.approx(1.0)
+    assert r.trades.iloc[0]["stop_risk_usd"] == pytest.approx(1.0)
+    # stop 0.0030 -> $3 per lot cent -> 0.33 lot, risk $0.99 (never above the target)
+    sc = Scripted({2: [(A.ENTER_LONG, 0.0030)]})
+    r = run_backtest(bars(px), sc, EUR, _sized(lot_value_scale=0.01), "EURUSD", "1h")
+    assert r.trades.iloc[0]["lots"] == pytest.approx(0.33)
+    assert r.trades.iloc[0]["stop_risk_usd"] <= 1.0
+
+
+def test_risk_sizing_skips_trade_when_minimum_lot_is_too_big():
+    px = [1.10] * 6
+    sc = Scripted({2: [(A.ENTER_LONG, 0.0100)]})  # $10 per 0.01 lot vs $1 target, normal acct
+    r = run_backtest(bars(px), sc, EUR, _sized(), "EURUSD", "1h")
+    assert len(r.trades) == 0 and r.rejected_over_risk == 1
+
+
+def test_cent_account_scales_profit_by_the_lot_value():
+    px = [1.10, 1.10, 1.10, 1.10, 1.11, 1.11]
+    sc = Scripted({1: [(A.ENTER_LONG, 0.5)], 3: [(A.EXIT_LONG, None)]})
+    normal = run_backtest(bars(px), sc, EUR, cfg(), "EURUSD", "1h")
+    cent = run_backtest(
+        bars(px), sc, EUR, _sized(risk_sizing=False, lot_value_scale=0.01), "EURUSD", "1h"
+    )
+    assert cent.trades.iloc[0]["pnl_usd"] == pytest.approx(normal.trades.iloc[0]["pnl_usd"] / 100)

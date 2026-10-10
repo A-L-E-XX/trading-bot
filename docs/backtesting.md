@@ -31,3 +31,13 @@ so use `--spread-multiplier` to stress.
 In-sample results are NOT evidence of an edge. On a $100 account a fixed 0.01 lot makes gold and
 BTC risk far more than 5% per trade, so those profits are not realistic. The research gate
 (Milestone 7) decides whether the strategy continues.
+
+## Small accounts and cent accounts (added 2026-10-10)
+- `--balance 20` sets the starting balance. `--lot-scale 0.01` models a cent account (one lot is
+  worth 1/100; verify with specs exported from a cent demo). `--risk-sizing --risk-pct 3` sizes each
+  trade so its stop risks about 3% of the balance (lots rounded DOWN to the step; trades that
+  cannot fit under the limit are skipped). `--max-lots` caps the size.
+- Example: `uv run tb-research --balance 20 --lot-scale 0.01 --risk-sizing --risk-pct 3`
+- Only symbols whose profit currency is USD, or pairs with USD as the base (USDJPY, USDCAD, USDCHF),
+  are supported. Cross pairs (EURJPY, GBPJPY, EURGBP...) need a cross-rate conversion that is not
+  built yet.

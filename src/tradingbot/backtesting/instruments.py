@@ -18,6 +18,7 @@ class InstrumentSpec:
     spread_points: float  # spread seen when the specs were exported
     currency_base: str
     currency_profit: str
+    volume_max: float = 200.0
 
     def quote_to_usd(self, price: float) -> float:
         """USD value of one unit of the profit (quote) currency at ``price``."""
@@ -60,5 +61,6 @@ def load_specs(path: Path | str) -> dict[str, InstrumentSpec]:
             spread_points=float(s["spread"]),
             currency_base=s["currency_base"],
             currency_profit=s["currency_profit"],
+            volume_max=float(s.get("volume_max", 200.0)),
         )
     return specs

@@ -15,6 +15,7 @@ against us on every fill. Profit is converted to USD (USDJPY / USDCAD profit is 
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 import pandas as pd
@@ -38,6 +39,14 @@ class BacktestConfig:
     # False: only report trades over the limit. True: skip entries whose stop risk exceeds it
     # (what the Milestone 8 risk engine will do live).
     enforce_risk_limit: bool = False
+    # Value of one lot relative to the instrument spec: 1.0 for a normal account, 0.01 for a cent
+    # account (Exness Standard Cent: a lot is worth 1/100). Verify with `tb-data specs`.
+    lot_value_scale: float = 1.0
+    # False: always trade `lots`. True: size every trade so that its stop risks about
+    # `max_risk_per_trade_pct` of the balance (rounded DOWN to the lot step; skipped if even the
+    # minimum lot risks more).
+    risk_sizing: bool = False
+    max_lots: float | None = None
 
 
 @dataclass
@@ -63,6 +72,8 @@ class _Position:
     stop_distance: float
     entry_reason: str
     balance_at_entry: float
+    lots: float
+    units: float
     bars: int = 0
 
 
@@ -87,8 +98,7 @@ def run_backtest(
     n = len(rows)
     spread = config.costs.spread(spec)
     slip = config.costs.slippage(spec)
-    units = config.lots * spec.contract_size
-    commission_side = config.costs.commission_per_lot * config.lots
+    per_lot_units = spec.contract_size * config.lot_value_scale
 
     balance = config.initial_balance
     pos: _Position | None = None
@@ -107,7 +117,8 @@ def run_backtest(
         move = (
             exit_price - pos.entry_price if pos.side == Side.LONG else pos.entry_price - exit_price
         )
-        commission = 2 * commission_side
+        units = pos.units
+        commission = 2 * config.costs.commission_per_lot * pos.lots
         pnl = move * units * spec.quote_to_usd(exit_price) - commission
         cost = (spread + 2 * slip) * units * spec.quote_to_usd(pos.entry_price) + commission
         risk = pos.stop_distance * units * spec.quote_to_usd(pos.entry_price)
@@ -121,7 +132,7 @@ def run_backtest(
                 "entry_price": pos.entry_price,
                 "exit_time": times[i],
                 "exit_price": exit_price,
-                "lots": config.lots,
+                "lots": pos.lots,
                 "stop_price": pos.stop_price,
                 "stop_distance": pos.stop_distance,
                 "stop_risk_usd": risk,
@@ -143,7 +154,7 @@ def run_backtest(
             move = close_price - pos.entry_price
         else:
             move = pos.entry_price - (close_price + spread)  # a short closes at the ask
-        return move * units * spec.quote_to_usd(close_price)
+        return move * pos.units * spec.quote_to_usd(close_price)
 
     for i in range(n):
         bar = rows[i]
@@ -158,13 +169,34 @@ def run_backtest(
                 side = Side.LONG if sig.action == Action.ENTER_LONG else Side.SHORT
                 fill = o + spread + slip if side == Side.LONG else o - slip
                 dist = float(sig.stop_distance)
-                if config.enforce_risk_limit:
-                    risk_pct = dist * units * spec.quote_to_usd(fill) / balance * 100
+                lots = config.lots
+                if config.risk_sizing:
+                    unit_risk = dist * per_lot_units * spec.quote_to_usd(fill)  # per 1.0 lot
+                    target = balance * config.max_risk_per_trade_pct / 100
+                    lots = math.floor(target / unit_risk / spec.volume_step + 1e-9)
+                    lots = round(lots * spec.volume_step, 8)
+                    lots = min(lots, spec.volume_max, config.max_lots or math.inf)
+                    if lots < spec.volume_min - 1e-12:
+                        rejected += 1
+                        continue
+                elif config.enforce_risk_limit:
+                    risk_pct = dist * lots * per_lot_units * spec.quote_to_usd(fill) / balance * 100
                     if risk_pct > config.max_risk_per_trade_pct:
                         rejected += 1
                         continue
                 stop = fill - dist if side == Side.LONG else fill + dist
-                pos = _Position(side, i, times[i], fill, stop, dist, sig.reason, balance)
+                pos = _Position(
+                    side,
+                    i,
+                    times[i],
+                    fill,
+                    stop,
+                    dist,
+                    sig.reason,
+                    balance,
+                    lots,
+                    lots * per_lot_units,
+                )
             elif pos is not None and (
                 (sig.action == Action.EXIT_LONG and pos.side == Side.LONG)
                 or (sig.action == Action.EXIT_SHORT and pos.side == Side.SHORT)

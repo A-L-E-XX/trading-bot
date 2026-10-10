@@ -17,7 +17,9 @@ def test_default_config_loads_and_matches_decisions():
     assert cfg.timeframes.primary == ["1h", "4h", "1d"]
     assert "BTCUSD" in cfg.instruments.symbols
     assert "XAUUSD" in cfg.instruments.symbols
-    assert len(cfg.instruments.symbols) == 7  # BTC + XAU + 5 forex majors
+    assert (
+        len(cfg.instruments.symbols) == 11
+    )  # BTC + XAU + 5 majors + NZDUSD, USDCHF, XAGUSD, ETHUSD
 
 
 def test_broker_symbol_suffix():

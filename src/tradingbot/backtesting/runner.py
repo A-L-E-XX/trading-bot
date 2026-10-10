@@ -79,6 +79,9 @@ def run_one(
         max_drawdown_limit_pct=app.account.max_drawdown_pct,
         max_risk_per_trade_pct=app.risk.max_risk_per_trade_pct,
         enforce_risk_limit=enforce_risk_limit,
+        lot_value_scale=app.account.lot_value_scale,
+        risk_sizing=app.account.risk_sizing,
+        max_lots=app.account.max_lots,
     )
     result = run_backtest(
         window, EmaTrendAtrStrategy(app.strategy_v1), spec, config, symbol, timeframe
