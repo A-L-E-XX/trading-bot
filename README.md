@@ -38,4 +38,5 @@ See [docs/data.md](docs/data.md) for real MT5 data.
 - [x] M4 Feature engine
 - [x] M5 Strategy V1 ([docs/strategy_v1.md](docs/strategy_v1.md))
 - [x] M6 Backtest engine ([docs/backtesting.md](docs/backtesting.md))
-- [ ] M7 – M14
+- [x] M7 Research gate ([docs/research_gate.md](docs/research_gate.md)) - built; Strategy V1 currently fails it
+- [ ] M8 – M14

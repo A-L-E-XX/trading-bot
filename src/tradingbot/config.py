@@ -70,6 +70,9 @@ class ResearchGateConfig(BaseModel):
     min_oos_trades: int = Field(gt=0)
     max_oos_drawdown_pct: float = Field(gt=0, le=100)
     max_param_sensitivity_drop_pct: float = Field(gt=0, le=100)
+    min_stress_profit_factor: float = Field(gt=0)
+    max_mc_breach_probability_pct: float = Field(ge=0, le=100)
+    min_profitable_folds_pct: float = Field(ge=0, le=100)
 
 
 class AppConfig(BaseModel):

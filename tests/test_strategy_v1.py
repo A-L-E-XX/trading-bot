@@ -44,7 +44,7 @@ def test_long_entry_on_up_cross_above_trend(strat):
     cur["close"], cur["atr"] = 105.0, 2.5
     (sig,) = strat.evaluate("EURUSD", "1h", T, prev, cur, None)
     assert sig.action == Action.ENTER_LONG
-    assert sig.stop_distance == pytest.approx(2.0 * 2.5)  # atr_stop_mult 2.0
+    assert sig.stop_distance == pytest.approx(2.5 * strat.params.atr_stop_mult)
     assert sig.strategy == "ema_trend_atr" and sig.strategy_version == "1.0.0"
     assert sig.reference_price == 105.0 and sig.bar_time == T and sig.reason
 

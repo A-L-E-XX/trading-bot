@@ -22,7 +22,7 @@ ema_fast = 20                  # (PROPOSED)
 ema_slow = 50                  # (PROPOSED)
 ema_trend = 200                # trend filter (PROPOSED)
 atr_period = 14
-atr_stop_mult = 2.0            # stop = entry -/+ 2 * ATR (PROPOSED)
+atr_stop_mult = 1.0            # stop = entry -/+ 1 * ATR (chosen 2026-10-10: 2x was too wide for $100)
 allow_short = true
 
 [costs]
@@ -45,3 +45,6 @@ min_oos_profit_factor = 1.2
 min_oos_trades = 30
 max_oos_drawdown_pct = 30.0
 max_param_sensitivity_drop_pct = 50.0   # perf must not collapse when params shift +/-20%
+min_stress_profit_factor = 1.0          # still not losing money when the spread is doubled (PROPOSED)
+max_mc_breach_probability_pct = 25.0    # share of reshuffled trade orders that hit the drawdown limit (PROPOSED)
+min_profitable_folds_pct = 50.0         # share of 4 consecutive time windows with profit factor > 1 (PROPOSED)
