@@ -33,10 +33,10 @@ slippage_spread_fraction = 0.25   # slippage per fill = this x spread (PROPOSED)
 commission_per_lot = 0.0          # USD per lot per side (Exness standard/cent accounts: none)
 
 [risk]
-max_risk_per_trade_pct = 5.0   # of current balance; with $100 that is $5 (PROPOSED)
+max_risk_per_trade_pct = 3.0   # of current balance; with $100 that is $3 (confirmed 2026-10-10)
 max_open_positions = 3         # (PROPOSED)
 max_total_exposure_lots = 0.05 # (PROPOSED)
-daily_loss_limit_pct = 10.0    # (PROPOSED)
+daily_loss_limit_pct = 5.0     # confirmed 2026-10-10
 kill_switch_drawdown_pct = 30.0
 
 [research_gate]

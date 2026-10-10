@@ -323,3 +323,25 @@ def test_damaging_the_next_candle_never_changes_a_decision_or_its_fill(raw_eurus
             base.trades[base.trades["entry_time"] <= t_open][cols].reset_index(drop=True),
             dmg.trades[dmg.trades["entry_time"] <= t_open][cols].reset_index(drop=True),
         )
+
+
+def test_enforced_risk_limit_skips_oversized_entries_and_keeps_small_ones():
+    from dataclasses import replace
+
+    from bt_helpers import EUR, Scripted, bars, cfg
+    from tradingbot.backtesting.engine import run_backtest
+    from tradingbot.signals import Action
+
+    px = [1.10] * 8
+    # stop 0.0100 on 1000 units = $10 risk (10% of $100); stop 0.0020 = $2 (2%)
+    big = Scripted({2: [(Action.ENTER_LONG, 0.0100)]})
+    small = Scripted({2: [(Action.ENTER_LONG, 0.0020)]})
+    limit = replace(cfg(), max_risk_per_trade_pct=5.0, enforce_risk_limit=True)
+
+    r = run_backtest(bars(px), big, EUR, limit, "EURUSD", "1h")
+    assert len(r.trades) == 0 and r.rejected_over_risk == 1
+    r = run_backtest(bars(px), small, EUR, limit, "EURUSD", "1h")
+    assert len(r.trades) == 1 and r.rejected_over_risk == 0
+    # without enforcement the big one is taken (and only reported)
+    r = run_backtest(bars(px), big, EUR, replace(limit, enforce_risk_limit=False), "EURUSD", "1h")
+    assert len(r.trades) == 1 and r.metrics["trades_over_risk_limit"] == 1

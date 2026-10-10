@@ -59,6 +59,7 @@ def run_one(
     costs: CostModel,
     start: pd.Timestamp | None = None,
     end: pd.Timestamp | None = None,
+    enforce_risk_limit: bool = False,
 ) -> RunOutput:
     """Load (checksum-verified) data, compute features on the full history, replay, report."""
     ohlcv = store.load(symbol, timeframe, verify=True)
@@ -77,6 +78,7 @@ def run_one(
         costs=costs,
         max_drawdown_limit_pct=app.account.max_drawdown_pct,
         max_risk_per_trade_pct=app.risk.max_risk_per_trade_pct,
+        enforce_risk_limit=enforce_risk_limit,
     )
     result = run_backtest(
         window, EmaTrendAtrStrategy(app.strategy_v1), spec, config, symbol, timeframe
@@ -103,6 +105,8 @@ def run_one(
         },
         "halted_reason": result.halted_reason,
         "ignored_entry_signals": result.ignored_entry_signals,
+        "rejected_over_risk": result.rejected_over_risk,
+        "enforce_risk_limit": enforce_risk_limit,
         "metrics": result.metrics,
     }
     return RunOutput(result, meta)

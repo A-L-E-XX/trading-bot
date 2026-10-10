@@ -43,6 +43,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--specs", default=str(DEFAULT_SPECS_PATH), help="broker contract specs JSON")
     p.add_argument("--out-dir", default="outputs/backtests", help="where trades/equity/report go")
     p.add_argument("--no-plots", action="store_true")
+    p.add_argument(
+        "--enforce-risk",
+        action="store_true",
+        help="skip entries whose stop risks more than risk.max_risk_per_trade_pct",
+    )
     return p
 
 
@@ -66,7 +71,15 @@ def main(argv: list[str] | None = None) -> int:
             t0 = time.time()
             try:
                 run = run_one(
-                    store, symbol, tf, app, specs[symbol], costs, _ts(args.start), _ts(args.end)
+                    store,
+                    symbol,
+                    tf,
+                    app,
+                    specs[symbol],
+                    costs,
+                    _ts(args.start),
+                    _ts(args.end),
+                    enforce_risk_limit=args.enforce_risk,
                 )
             except (FileNotFoundError, KeyError, ValueError, DatasetIntegrityError) as exc:
                 failures += 1

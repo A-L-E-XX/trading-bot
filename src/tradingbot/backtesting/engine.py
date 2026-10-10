@@ -34,7 +34,10 @@ class BacktestConfig:
     lots: float = 0.01
     costs: CostModel = field(default_factory=CostModel)
     max_drawdown_limit_pct: float = 30.0  # reported on, not enforced (the risk engine does that)
-    max_risk_per_trade_pct: float = 5.0  # reported on, not enforced (the risk engine does that)
+    max_risk_per_trade_pct: float = 5.0
+    # False: only report trades over the limit. True: skip entries whose stop risk exceeds it
+    # (what the Milestone 8 risk engine will do live).
+    enforce_risk_limit: bool = False
 
 
 @dataclass
@@ -47,6 +50,7 @@ class BacktestResult:
     metrics: dict
     halted_reason: str | None = None
     ignored_entry_signals: int = 0
+    rejected_over_risk: int = 0
 
 
 @dataclass
@@ -94,6 +98,7 @@ def run_backtest(
     equity_times: list[pd.Timestamp] = []
     signal_log: list[dict] = []
     ignored = 0
+    rejected = 0
     halted: str | None = None
 
     def close(i: int, exit_price: float, reason: str) -> None:
@@ -153,6 +158,11 @@ def run_backtest(
                 side = Side.LONG if sig.action == Action.ENTER_LONG else Side.SHORT
                 fill = o + spread + slip if side == Side.LONG else o - slip
                 dist = float(sig.stop_distance)
+                if config.enforce_risk_limit:
+                    risk_pct = dist * units * spec.quote_to_usd(fill) / balance * 100
+                    if risk_pct > config.max_risk_per_trade_pct:
+                        rejected += 1
+                        continue
                 stop = fill - dist if side == Side.LONG else fill + dist
                 pos = _Position(side, i, times[i], fill, stop, dist, sig.reason, balance)
             elif pos is not None and (
@@ -228,4 +238,5 @@ def run_backtest(
         metrics=metrics,
         halted_reason=halted,
         ignored_entry_signals=ignored,
+        rejected_over_risk=rejected,
     )
