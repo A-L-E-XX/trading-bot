@@ -1,3 +1,4 @@
+import sys
 from collections import namedtuple
 from datetime import UTC, datetime
 
@@ -173,7 +174,9 @@ def test_mt5_symbol_discovery_and_offset_estimate():
     assert col.estimate_server_offset_hours("EURUSD") == 3.0
 
 
-def test_missing_metatrader5_package_gives_clear_error():
+def test_missing_metatrader5_package_gives_clear_error(monkeypatch):
+    # Setting the module to None makes `import MetaTrader5` fail, even where it is installed.
+    monkeypatch.setitem(sys.modules, "MetaTrader5", None)
     with pytest.raises(MT5Error, match="uv sync --extra mt5"):
         MT5Collector().connect()
 
