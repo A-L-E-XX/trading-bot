@@ -36,4 +36,6 @@ See [docs/data.md](docs/data.md) for real MT5 data.
 - [x] M2 Development environment
 - [x] M3 Market data pipeline ([docs/data.md](docs/data.md))
 - [x] M4 Feature engine
-- [ ] M5 – M14
+- [x] M5 Strategy V1 ([docs/strategy_v1.md](docs/strategy_v1.md))
+- [x] M6 Backtest engine ([docs/backtesting.md](docs/backtesting.md))
+- [ ] M7 – M14

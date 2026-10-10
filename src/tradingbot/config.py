@@ -52,8 +52,9 @@ class StrategyV1Config(BaseModel):
 
 
 class CostsConfig(BaseModel):
-    default_slippage_pips: float = Field(ge=0)
-    default_commission_per_lot: float = Field(ge=0)
+    spread_multiplier: float = Field(ge=0)
+    slippage_spread_fraction: float = Field(ge=0)
+    commission_per_lot: float = Field(ge=0)
 
 
 class RiskConfig(BaseModel):

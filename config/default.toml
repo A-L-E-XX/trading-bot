@@ -26,9 +26,11 @@ atr_stop_mult = 2.0            # stop = entry -/+ 2 * ATR (PROPOSED)
 allow_short = true
 
 [costs]
-# Per-instrument spread/commission/slippage are filled in at Milestone 6 from real broker specs.
-default_slippage_pips = 0.5    # (PROPOSED)
-default_commission_per_lot = 0.0
+# Spread comes from config/instrument_specs.json (Exness demo, `tb-data specs`). Costs are modelled
+# as bid/ask: buys fill at ask (bid + spread), sells at bid, plus slippage on every fill.
+spread_multiplier = 1.0           # 1.0 = spread seen when specs were exported; stress tests raise it
+slippage_spread_fraction = 0.25   # slippage per fill = this x spread (PROPOSED)
+commission_per_lot = 0.0          # USD per lot per side (Exness standard/cent accounts: none)
 
 [risk]
 max_risk_per_trade_pct = 5.0   # of current balance; with $100 that is $5 (PROPOSED)
