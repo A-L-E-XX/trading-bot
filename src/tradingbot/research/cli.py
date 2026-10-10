@@ -11,7 +11,7 @@ from pathlib import Path
 import pandas as pd
 
 from tradingbot.backtesting.costs import CostModel
-from tradingbot.backtesting.instruments import load_specs
+from tradingbot.backtesting.instruments import get_spec, load_specs
 from tradingbot.backtesting.runner import DEFAULT_SPECS_PATH
 from tradingbot.config import load_config, load_settings, with_account_overrides
 from tradingbot.data.storage import DatasetIntegrityError, DatasetStore
@@ -111,7 +111,7 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 ohlcv = store.load(symbol, tf, verify=True)
                 res = evaluate_gate(
-                    ohlcv, specs[symbol], app, costs, symbol, tf,
+                    ohlcv, get_spec(specs, symbol), app, costs, symbol, tf,
                     oos_fraction=args.oos_fraction, mc_sims=args.mc_sims,
                 )  # fmt: skip
             except (FileNotFoundError, KeyError, ValueError, DatasetIntegrityError) as exc:

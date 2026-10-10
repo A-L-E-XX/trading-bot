@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 
 from tradingbot.backtesting.costs import CostModel
-from tradingbot.backtesting.instruments import load_specs
+from tradingbot.backtesting.instruments import get_spec, load_specs
 from tradingbot.backtesting.runner import (
     DEFAULT_SPECS_PATH,
     run_one,
@@ -92,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
                     symbol,
                     tf,
                     app,
-                    specs[symbol],
+                    get_spec(specs, symbol),
                     costs,
                     _ts(args.start),
                     _ts(args.end),

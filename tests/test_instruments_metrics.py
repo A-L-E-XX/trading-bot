@@ -33,7 +33,9 @@ def test_spread_and_lot_rules():
 
 def test_real_broker_specs_load():
     specs = load_specs(SPECS)
-    assert set(specs) == set(load_config().instruments.symbols)
+    configured = set(load_config().instruments.symbols)
+    assert set(specs) <= configured  # symbols added later need `tb-data specs` re-run
+    assert {"BTCUSD", "XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD"} <= set(specs)
     assert specs["EURUSD"].contract_size == 100000 and specs["EURUSD"].spread_points == 8
     assert specs["XAUUSD"].contract_size == 100 and specs["BTCUSD"].contract_size == 1
     assert specs["USDJPY"].currency_profit == "JPY"

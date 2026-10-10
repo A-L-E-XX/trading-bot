@@ -64,3 +64,9 @@ def load_specs(path: Path | str) -> dict[str, InstrumentSpec]:
             volume_max=float(s.get("volume_max", 200.0)),
         )
     return specs
+
+
+def get_spec(specs: dict[str, InstrumentSpec], symbol: str) -> InstrumentSpec:
+    if symbol not in specs:
+        raise ValueError(f"no broker specs for {symbol}: run `uv run --extra mt5 tb-data specs`")
+    return specs[symbol]
