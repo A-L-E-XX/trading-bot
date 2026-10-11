@@ -42,4 +42,5 @@ See [docs/data.md](docs/data.md) for real MT5 data.
 - [x] Strategy V2 (mean reversion, [docs/strategy_v2.md](docs/strategy_v2.md)) - built; also fails the gate
 - [x] M8 Risk engine ([docs/risk_engine.md](docs/risk_engine.md))
 - [x] M9 Paper engine ([docs/paper_engine.md](docs/paper_engine.md))
-- [ ] M10 – M14 - MT5 adapter, order management, monitoring, security, release gate
+- [x] M10 Read-only MT5 live feed ([docs/live_feed.md](docs/live_feed.md))
+- [ ] M11 – M14 - order management, monitoring, security, release gate

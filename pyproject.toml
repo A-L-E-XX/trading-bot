@@ -25,6 +25,7 @@ mt5 = ["MetaTrader5>=5.0.45; sys_platform == 'win32'"]
 tb-data = "tradingbot.data.cli:main"
 tb-backtest = "tradingbot.backtesting.cli:main"
 tb-research = "tradingbot.research.cli:main"
+tb-paper = "tradingbot.execution.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.5"]

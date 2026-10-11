@@ -1,4 +1,4 @@
-"""Execution: paper trading engine (Milestone 9); broker adapters arrive in Milestone 10."""
+"""Execution: paper trading engine (M9) and the read-only MT5 live feed (M10)."""
 
 from tradingbot.execution.paper import PaperAccount, PaperEngine
 

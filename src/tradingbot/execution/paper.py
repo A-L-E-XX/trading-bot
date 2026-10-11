@@ -111,6 +111,10 @@ class PaperEngine:
                 f.write(json.dumps(ev, default=str) + "\n")
         return ev
 
+    def note(self, kind: str, bar_time, **fields) -> dict:
+        """Write an extra event (used by the live feed for spread checks and feed errors)."""
+        return self._log(kind, bar_time, **fields)
+
     def _signal_dict(self, s: Signal) -> dict:
         return {
             "bar_time": str(s.bar_time),

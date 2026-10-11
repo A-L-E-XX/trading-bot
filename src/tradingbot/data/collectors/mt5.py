@@ -128,6 +128,43 @@ class MT5Collector:
             "demo": self.account_is_demo(),
         }
 
+    # -- live data (read-only) --------------------------------------------------------
+    def _rates_to_frame(self, rates) -> pd.DataFrame:
+        raw = pd.DataFrame(np.asarray(rates))
+        raw["time"] = to_utc(
+            pd.to_datetime(raw["time"], unit="s"),
+            utc_offset_hours=self.server_utc_offset_hours,
+            timezone=self.server_timezone,
+        )
+        raw = raw.rename(columns={"tick_volume": "volume"})
+        return raw[["time", "open", "high", "low", "close", "volume"]]
+
+    def fetch_recent(self, symbol: str, timeframe: str, count: int = 1500) -> pd.DataFrame:
+        """The latest ``count`` candles, oldest first. The LAST row is the still-forming candle."""
+        self.connect()
+        broker_symbol = self.broker_symbol(symbol)
+        if not self._mt5.symbol_select(broker_symbol, True):
+            raise MT5Error(f"symbol {broker_symbol!r} not available: {self._mt5.last_error()}")
+        tf = getattr(self._mt5, _TF_ATTR[timeframe])
+        rates = self._mt5.copy_rates_from_pos(broker_symbol, tf, 0, count)
+        if rates is None or not len(rates):
+            raise MT5Error(f"MT5 returned no recent {timeframe} candles for {broker_symbol}")
+        return self._rates_to_frame(rates)
+
+    def quote(self, symbol: str) -> dict | None:
+        """Latest bid/ask (price units) and the tick time in UTC, or None if there is no tick."""
+        self.connect()
+        tick = self._mt5.symbol_info_tick(self.broker_symbol(symbol))
+        if tick is None or not (tick.bid > 0 and tick.ask > 0):
+            return None
+        t = to_utc(
+            pd.Series([pd.to_datetime(tick.time, unit="s")]),
+            utc_offset_hours=self.server_utc_offset_hours,
+            timezone=self.server_timezone,
+        ).iloc[0]
+        spread = float(tick.ask - tick.bid)
+        return {"bid": float(tick.bid), "ask": float(tick.ask), "spread": spread, "time": t}
+
     # -- data -----------------------------------------------------------------------
     def fetch(self, symbol: str, timeframe: str, start: datetime, end: datetime) -> pd.DataFrame:
         self.connect()
