@@ -56,6 +56,21 @@ class StrategyV1Config(BaseModel):
         return self
 
 
+class StrategyV2Config(BaseModel):
+    """Mean reversion: fade moves outside the Bollinger bands when RSI agrees."""
+
+    name: str
+    version: str
+    bb_period: int = Field(gt=1)
+    bb_k: float = Field(gt=0)
+    rsi_period: int = Field(gt=1)
+    rsi_low: float = Field(gt=0, lt=50)
+    rsi_high: float = Field(gt=50, lt=100)
+    atr_period: int = Field(gt=0)
+    atr_stop_mult: float = Field(gt=0)
+    allow_short: bool = True
+
+
 class CostsConfig(BaseModel):
     spread_multiplier: float = Field(ge=0)
     slippage_spread_fraction: float = Field(ge=0)
@@ -87,6 +102,7 @@ class AppConfig(BaseModel):
     instruments: InstrumentsConfig
     timeframes: TimeframesConfig
     strategy_v1: StrategyV1Config
+    strategy_v2: StrategyV2Config
     costs: CostsConfig
     risk: RiskConfig
     research_gate: ResearchGateConfig

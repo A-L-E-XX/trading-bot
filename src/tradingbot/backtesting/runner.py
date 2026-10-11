@@ -18,8 +18,8 @@ from tradingbot.backtesting.engine import BacktestConfig, BacktestResult, run_ba
 from tradingbot.backtesting.instruments import InstrumentSpec  # noqa: E402
 from tradingbot.config import DEFAULT_CONFIG_PATH, AppConfig  # noqa: E402
 from tradingbot.data.storage import DatasetStore  # noqa: E402
-from tradingbot.features import FeatureParams, compute_features  # noqa: E402
-from tradingbot.strategies import EmaTrendAtrStrategy  # noqa: E402
+from tradingbot.features import compute_features  # noqa: E402
+from tradingbot.strategies import get_strategy_def  # noqa: E402
 
 DEFAULT_SPECS_PATH = DEFAULT_CONFIG_PATH.parent / "instrument_specs.json"
 
@@ -60,10 +60,13 @@ def run_one(
     start: pd.Timestamp | None = None,
     end: pd.Timestamp | None = None,
     enforce_risk_limit: bool = False,
+    strategy: str = "v1",
 ) -> RunOutput:
     """Load (checksum-verified) data, compute features on the full history, replay, report."""
     ohlcv = store.load(symbol, timeframe, verify=True)
-    features = compute_features(ohlcv, FeatureParams.from_config(app.strategy_v1))
+    sdef = get_strategy_def(strategy)
+    sparams = sdef.params(app)
+    features = compute_features(ohlcv, sdef.feature_params(sparams))
     window = features
     if start is not None:
         window = window[window.index >= start]
@@ -83,9 +86,7 @@ def run_one(
         risk_sizing=app.account.risk_sizing,
         max_lots=app.account.max_lots,
     )
-    result = run_backtest(
-        window, EmaTrendAtrStrategy(app.strategy_v1), spec, config, symbol, timeframe
-    )
+    result = run_backtest(window, sdef.strategy_cls(sparams), spec, config, symbol, timeframe)
     stored = store.metadata(symbol, timeframe)
     meta = {
         "symbol": symbol,
@@ -97,7 +98,7 @@ def run_one(
             "last_candle": str(window.index[-1]),
             "candles": len(window),
         },  # fmt: skip
-        "strategy": app.strategy_v1.model_dump(),
+        "strategy": sparams.model_dump(),
         "account": {"initial_balance": config.initial_balance, "lots": config.lots},
         "costs": {
             "spread_multiplier": costs.spread_multiplier,

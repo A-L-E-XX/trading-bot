@@ -16,6 +16,7 @@ from tradingbot.backtesting.runner import DEFAULT_SPECS_PATH
 from tradingbot.config import load_config, load_settings, with_account_overrides
 from tradingbot.data.storage import DatasetIntegrityError, DatasetStore
 from tradingbot.research.gate import CHECKS, GateResult, evaluate_gate
+from tradingbot.strategies import get_strategy_def
 
 _NOTE = (
     "How to read it: a candidate passes only if EVERY check passes. Parameters were fixed before "
@@ -33,6 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--specs", default=str(DEFAULT_SPECS_PATH))
     p.add_argument("--out-dir", default="outputs/research")
     p.add_argument("--oos-fraction", type=float, default=0.4, help="share of history held out")
+    p.add_argument("--strategy", choices=["v1", "v2"], default="v1")
     p.add_argument("--mc-sims", type=int, default=2000)
     p.add_argument("--balance", type=float, help="starting balance, e.g. 20")
     p.add_argument(
@@ -46,7 +48,9 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def write_report(out_dir: Path, results: list[GateResult], app) -> pd.DataFrame:
+def write_report(
+    out_dir: Path, results: list[GateResult], app, strategy: str = "v1"
+) -> pd.DataFrame:
     out_dir.mkdir(parents=True, exist_ok=True)
     table = pd.DataFrame([r.row() for r in results])
     table.to_csv(out_dir / "gate.csv", index=False)
@@ -54,6 +58,7 @@ def write_report(out_dir: Path, results: list[GateResult], app) -> pd.DataFrame:
         json.dumps([r.row() for r in results], indent=2, default=str) + "\n", encoding="utf-8"
     )
     g = app.research_gate
+    sp = get_strategy_def(strategy).params(app)
     show = table[
         ["symbol", "timeframe", "PASS", "oos_trades", "oos_profit_factor", "oos_net_usd",
          "oos_drawdown_pct", "worst_param_drop_pct", "stress2x_profit_factor",
@@ -63,11 +68,12 @@ def write_report(out_dir: Path, results: list[GateResult], app) -> pd.DataFrame:
     text = [
         "# Research gate report",
         "",
-        f"Strategy `{app.strategy_v1.name}`: EMA {app.strategy_v1.ema_fast}/"
-        f"{app.strategy_v1.ema_slow}/{app.strategy_v1.ema_trend}, stop "
-        f"{app.strategy_v1.atr_stop_mult} x ATR, risk limit {app.risk.max_risk_per_trade_pct}% "
-        f"per trade (enforced), account ${app.account.initial_balance:,.0f}, "
-        f"{app.account.fixed_lot} lot.",
+        f"Strategy `{sp.name}` v{sp.version} ({strategy}), parameters: "
+        + ", ".join(f"{k}={v}" for k, v in sp.model_dump().items() if k not in ("name", "version"))
+        + f". Risk limit {app.risk.max_risk_per_trade_pct}% per trade (enforced), account "
+        f"${app.account.initial_balance:,.0f}"
+        + (", sized by risk" if app.account.risk_sizing else f", {app.account.fixed_lot} lot")
+        + f", lot value x{app.account.lot_value_scale}.",
         "",
         "Thresholds: OOS profit factor >= "
         f"{g.min_oos_profit_factor}, OOS trades >= {g.min_oos_trades}, OOS drawdown <= "
@@ -112,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
                 ohlcv = store.load(symbol, tf, verify=True)
                 res = evaluate_gate(
                     ohlcv, get_spec(specs, symbol), app, costs, symbol, tf,
-                    oos_fraction=args.oos_fraction, mc_sims=args.mc_sims,
+                    oos_fraction=args.oos_fraction, mc_sims=args.mc_sims, strategy=args.strategy,
                 )  # fmt: skip
             except (FileNotFoundError, KeyError, ValueError, DatasetIntegrityError) as exc:
                 failures += 1
@@ -125,7 +131,7 @@ def main(argv: list[str] | None = None) -> int:
     if not results:
         print("Nothing was run.", file=sys.stderr)
         return 1
-    table = write_report(Path(args.out_dir), results, app)
+    table = write_report(Path(args.out_dir), results, app, args.strategy)
     print(f"\n{int(table['PASS'].sum())} of {len(table)} candidates passed. "
           f"Report: {args.out_dir}/gate_report.md")  # fmt: skip
     return 1 if failures else 0

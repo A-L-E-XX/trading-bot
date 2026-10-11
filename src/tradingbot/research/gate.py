@@ -19,11 +19,9 @@ import pandas as pd
 from tradingbot.backtesting.costs import CostModel
 from tradingbot.backtesting.engine import BacktestConfig, BacktestResult, run_backtest
 from tradingbot.backtesting.instruments import InstrumentSpec
-from tradingbot.config import AppConfig, StrategyV1Config
-from tradingbot.features import FeatureParams, compute_features
-from tradingbot.strategies import EmaTrendAtrStrategy
+from tradingbot.features import compute_features
+from tradingbot.strategies import StrategyDef, get_strategy_def
 
-PARAM_FIELDS = ("ema_fast", "ema_slow", "ema_trend", "atr_stop_mult")
 CHECKS = (
     "oos_trades",
     "oos_profit_factor",
@@ -97,19 +95,22 @@ def monte_carlo(
 class _Runner:
     """Runs the strategy on one dataset with arbitrary parameters, windows and costs."""
 
-    def __init__(self, ohlcv: pd.DataFrame, spec: InstrumentSpec, app: AppConfig, symbol, tf):
+    def __init__(
+        self, ohlcv: pd.DataFrame, spec: InstrumentSpec, app, symbol, tf, sdef: StrategyDef
+    ):
         self.ohlcv, self.spec, self.app, self.symbol, self.tf = ohlcv, spec, app, symbol, tf
+        self.sdef = sdef
         self._features: dict[tuple, pd.DataFrame] = {}
 
-    def features(self, p: StrategyV1Config) -> pd.DataFrame:
-        key = (p.ema_fast, p.ema_slow, p.ema_trend, p.atr_period)
-        if key not in self._features:
-            self._features[key] = compute_features(self.ohlcv, FeatureParams.from_config(p))
-        return self._features[key]
+    def features(self, p) -> pd.DataFrame:
+        fp = self.sdef.feature_params(p)  # frozen dataclass: usable as a cache key
+        if fp not in self._features:
+            self._features[fp] = compute_features(self.ohlcv, fp)
+        return self._features[fp]
 
     def run(
         self,
-        p: StrategyV1Config,
+        p,
         start: pd.Timestamp | None,
         end: pd.Timestamp | None,
         costs: CostModel,
@@ -130,37 +131,40 @@ class _Runner:
             risk_sizing=self.app.account.risk_sizing,
             max_lots=self.app.account.max_lots,
         )
-        return run_backtest(window, EmaTrendAtrStrategy(p), self.spec, cfg, self.symbol, self.tf)
+        return run_backtest(window, self.sdef.strategy_cls(p), self.spec, cfg, self.symbol, self.tf)
 
 
-def _variants(base: StrategyV1Config, pct: float = 0.2):
-    for name in PARAM_FIELDS:
+def _variants(base, fields: tuple[str, ...], pct: float = 0.2):
+    for name in fields:
         for sign in (-1, 1):
-            value = getattr(base, name) * (1 + sign * pct)
-            value = round(value, 4) if name == "atr_stop_mult" else max(2, round(value))
+            orig = getattr(base, name)
+            value = orig * (1 + sign * pct)
+            value = max(2, round(value)) if isinstance(orig, int) else round(value, 4)
             try:
                 yield (
                     f"{name}{'+' if sign > 0 else '-'}{int(pct * 100)}%",
                     base.model_copy(update={name: value}),
                 )
-            except ValueError:  # e.g. would break ema_fast < ema_slow < ema_trend
+            except ValueError:  # e.g. would break an ordering rule between parameters
                 continue
 
 
 def evaluate_gate(
     ohlcv: pd.DataFrame,
     spec: InstrumentSpec,
-    app: AppConfig,
+    app,
     costs: CostModel,
     symbol: str,
     timeframe: str,
     oos_fraction: float = 0.4,
     folds: int = 4,
     mc_sims: int = 2000,
+    strategy: str = "v1",
 ) -> GateResult:
     gate = app.research_gate
-    runner = _Runner(ohlcv, spec, app, symbol, timeframe)
-    base = app.strategy_v1
+    sdef = get_strategy_def(strategy)
+    runner = _Runner(ohlcv, spec, app, symbol, timeframe, sdef)
+    base = sdef.params(app)
     n = len(ohlcv)
     split = ohlcv.index[int(n * (1 - oos_fraction))]
     d: dict = {"split_time": str(split)}
@@ -182,7 +186,7 @@ def evaluate_gate(
 
     # parameter sensitivity: each parameter +/-20%, judged on the OOS window
     worst = None
-    for label, p in _variants(base):
+    for label, p in _variants(base, sdef.sensitivity_fields):
         pf = profit_factor(runner.run(p, split, None, costs).metrics)
         pf = 0.0 if pf is None else pf
         if base_pf and math.isfinite(base_pf):

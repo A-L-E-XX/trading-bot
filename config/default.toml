@@ -25,6 +25,20 @@ atr_period = 14
 atr_stop_mult = 1.0            # stop = entry -/+ 1 * ATR (chosen 2026-10-10: 2x was too wide for $100)
 allow_short = true
 
+[strategy_v2]
+# Mean reversion (added 2026-10-10 after V1 failed the research gate). All values PROPOSED and fixed
+# BEFORE looking at out-of-sample results - do not tune them on the gate output.
+name = "mean_reversion_bb"
+version = "1.0.0"
+bb_period = 20                 # Bollinger mean = SMA(20), bands = mean -/+ bb_k * std
+bb_k = 2.0
+rsi_period = 14
+rsi_low = 30.0                 # long only if RSI below this (oversold)
+rsi_high = 70.0                # short only if RSI above this (overbought)
+atr_period = 14
+atr_stop_mult = 1.5            # stop = entry -/+ 1.5 * ATR; exit when price returns to the mean
+allow_short = true
+
 [costs]
 # Spread comes from config/instrument_specs.json (Exness demo, `tb-data specs`). Costs are modelled
 # as bid/ask: buys fill at ask (bid + spread), sells at bid, plus slippage on every fill.

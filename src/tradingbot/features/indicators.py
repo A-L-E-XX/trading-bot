@@ -24,6 +24,11 @@ def sma(series: pd.Series, period: int) -> pd.Series:
     return series.rolling(period, min_periods=period).mean()
 
 
+def rolling_std(series: pd.Series, period: int) -> pd.Series:
+    """Population standard deviation (ddof=0) over the last ``period`` values, as Bollinger uses."""
+    return series.rolling(period, min_periods=period).std(ddof=0)
+
+
 def ema(series: pd.Series, period: int) -> pd.Series:
     """Exponential moving average, alpha = 2 / (period + 1), NaN for the first period-1 rows."""
     return series.ewm(span=period, adjust=False, min_periods=period).mean()

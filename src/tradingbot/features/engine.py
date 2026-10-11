@@ -14,6 +14,7 @@ FEATURE_COLUMNS = [
     "ret",
     "log_ret",
     "sma",
+    "bb_std",
     "ema_fast",
     "ema_slow",
     "ema_trend",
@@ -46,6 +47,14 @@ class FeatureParams:
             atr_period=strategy.atr_period,
         )
 
+    @classmethod
+    def from_v2(cls, strategy) -> FeatureParams:
+        return cls(
+            sma_period=strategy.bb_period,
+            rsi_period=strategy.rsi_period,
+            atr_period=strategy.atr_period,
+        )
+
     @property
     def strategy_warmup_rows(self) -> int:
         """Rows needed before every Strategy V1 feature is valid."""
@@ -69,6 +78,7 @@ def compute_features(ohlcv: pd.DataFrame, params: FeatureParams | None = None) -
     out["ret"] = ind.simple_returns(close)
     out["log_ret"] = ind.log_returns(close)
     out["sma"] = ind.sma(close, params.sma_period)
+    out["bb_std"] = ind.rolling_std(close, params.sma_period)
     out["ema_fast"] = ind.ema(close, params.ema_fast)
     out["ema_slow"] = ind.ema(close, params.ema_slow)
     out["ema_trend"] = ind.ema(close, params.ema_trend)
