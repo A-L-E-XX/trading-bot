@@ -91,7 +91,8 @@ def run_backtest(
         raise ValueError(f"features are missing columns: {sorted(set(missing))}")
     if not features.index.is_monotonic_increasing or features.index.has_duplicates:
         raise ValueError("features must be sorted by time with unique timestamps")
-    spec.check_lot(config.lots)
+    if not config.risk_sizing:
+        spec.check_lot(config.lots)
 
     times = features.index
     rows = features.to_dict("records")

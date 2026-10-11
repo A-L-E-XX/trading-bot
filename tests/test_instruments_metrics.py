@@ -40,7 +40,7 @@ def test_real_broker_specs_load():
     assert specs["XAUUSD"].contract_size == 100 and specs["BTCUSD"].contract_size == 1
     assert specs["USDJPY"].currency_profit == "JPY"
     for spec in specs.values():
-        spec.check_lot(load_config().account.fixed_lot)  # 0.01 lot is valid everywhere
+        spec.check_lot(spec.volume_min)  # ETHUSD's minimum lot is 0.1, the rest 0.01
     with pytest.raises(FileNotFoundError, match="tb-data specs"):
         load_specs(SPECS.parent / "missing.json")
 
