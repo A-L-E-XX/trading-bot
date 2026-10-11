@@ -40,4 +40,4 @@ See [docs/data.md](docs/data.md) for real MT5 data.
 - [x] M6 Backtest engine ([docs/backtesting.md](docs/backtesting.md))
 - [x] M7 Research gate ([docs/research_gate.md](docs/research_gate.md)) - built; Strategy V1 currently fails it
 - [x] Strategy V2 (mean reversion, [docs/strategy_v2.md](docs/strategy_v2.md)) - built; also fails the gate
-- [ ] M8 – M14
+- [ ] M8 – M14 - not built: MVP paused after the research gate (see [docs/FINDINGS.md](docs/FINDINGS.md))
