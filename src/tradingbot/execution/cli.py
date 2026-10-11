@@ -66,7 +66,11 @@ def build_parser() -> argparse.ArgumentParser:
 def cmd_status(args) -> int:
     path = Path(args.out_dir) / args.name / "state.json"
     if not path.exists():
-        print(f"No saved session at {path}", file=sys.stderr)
+        log = path.with_name("events.jsonl")
+        if log.exists():
+            print(f"Session started but no candle has been processed yet (log: {log}).")
+            return 0
+        print(f"No session found at {path.parent} (it has never been started).", file=sys.stderr)
         return 1
     st = json.loads(path.read_text(encoding="utf-8"))
     wins = sum(1 for t in st["trades"] if t["pnl_usd"] > 0)
@@ -134,6 +138,10 @@ def cmd_run(args) -> int:
         print(f"Paper session '{name}' on a DEMO account: {args.strategy} {args.symbol} "
               f"{args.timeframe}, balance ${engine.balance:.2f}, "
               f"last candle {engine.last_bar_time}. Ctrl+C to stop.")  # fmt: skip
+        engine.note(
+            "session_started", engine.last_bar_time, strategy=args.strategy,
+            timeframe=args.timeframe, balance=engine.balance, once=bool(args.once),
+        )  # fmt: skip
         try:
             result = run_session(col, engine, poll_seconds=args.poll_seconds,
                                  max_polls=1 if args.once else None)  # fmt: skip

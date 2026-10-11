@@ -291,3 +291,11 @@ def test_event_log_lines_are_valid_json(tmp_path, df):
                 now=now_after(df, 329), sleep=lambda s: None)  # fmt: skip
     rows = [json.loads(x) for x in log.read_text().splitlines()]
     assert rows and all("event" in r for r in rows)
+
+
+def test_status_explains_a_session_that_started_but_processed_nothing(tmp_path, capsys):
+    folder = tmp_path / "idle"
+    folder.mkdir()
+    (folder / "events.jsonl").write_text('{"event": "session_started"}\n', encoding="utf-8")
+    assert paper_main(["status", "--name", "idle", "--out-dir", str(tmp_path)]) == 0
+    assert "no candle has been processed yet" in capsys.readouterr().out
