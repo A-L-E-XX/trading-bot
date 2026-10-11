@@ -41,4 +41,5 @@ See [docs/data.md](docs/data.md) for real MT5 data.
 - [x] M7 Research gate ([docs/research_gate.md](docs/research_gate.md)) - built; Strategy V1 currently fails it
 - [x] Strategy V2 (mean reversion, [docs/strategy_v2.md](docs/strategy_v2.md)) - built; also fails the gate
 - [x] M8 Risk engine ([docs/risk_engine.md](docs/risk_engine.md))
-- [ ] M9 – M14 - paper engine, MT5 adapter, order management, monitoring, security, release gate
+- [x] M9 Paper engine ([docs/paper_engine.md](docs/paper_engine.md))
+- [ ] M10 – M14 - MT5 adapter, order management, monitoring, security, release gate
