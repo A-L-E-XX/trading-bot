@@ -15,7 +15,6 @@ against us on every fill. Profit is converted to USD (USDJPY / USDCAD profit is 
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 
 import pandas as pd
@@ -23,6 +22,7 @@ import pandas as pd
 from tradingbot.backtesting.costs import CostModel
 from tradingbot.backtesting.instruments import InstrumentSpec
 from tradingbot.backtesting.metrics import compute_metrics
+from tradingbot.risk import RiskEngine, RiskLimits, size_lots
 from tradingbot.signals import Action, Side, Signal
 from tradingbot.strategies.base import Strategy
 
@@ -47,6 +47,9 @@ class BacktestConfig:
     # minimum lot risks more).
     risk_sizing: bool = False
     max_lots: float | None = None
+    # When set, every entry goes through the Milestone 8 RiskEngine (per-trade risk, position and
+    # exposure caps, daily loss limit, drawdown kill switch) exactly as paper trading will.
+    risk_limits: RiskLimits | None = None
 
 
 @dataclass
@@ -60,6 +63,7 @@ class BacktestResult:
     halted_reason: str | None = None
     ignored_entry_signals: int = 0
     rejected_over_risk: int = 0
+    reject_reasons: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -110,6 +114,12 @@ def run_backtest(
     signal_log: list[dict] = []
     ignored = 0
     rejected = 0
+    reject_reasons: dict[str, int] = {}
+    rengine = (
+        RiskEngine(config.risk_limits, config.initial_balance, times[0], config.lot_value_scale)
+        if config.risk_limits
+        else None
+    )
     halted: str | None = None
 
     def close(i: int, exit_price: float, reason: str) -> None:
@@ -147,6 +157,8 @@ def run_backtest(
                 "balance_after": balance,
             }
         )
+        if rengine is not None:
+            rengine.register_close(symbol)
         pos = None
 
     def unrealized(close_price: float) -> float:
@@ -171,13 +183,33 @@ def run_backtest(
                 fill = o + spread + slip if side == Side.LONG else o - slip
                 dist = float(sig.stop_distance)
                 lots = config.lots
-                if config.risk_sizing:
-                    unit_risk = dist * per_lot_units * spec.quote_to_usd(fill)  # per 1.0 lot
-                    target = balance * config.max_risk_per_trade_pct / 100
-                    lots = math.floor(target / unit_risk / spec.volume_step + 1e-9)
-                    lots = round(lots * spec.volume_step, 8)
-                    lots = min(lots, spec.volume_max, config.max_lots or math.inf)
-                    if lots < spec.volume_min - 1e-12:
+                if rengine is not None:
+                    dec = rengine.evaluate_entry(
+                        symbol=symbol,
+                        stop_distance=dist,
+                        price=fill,
+                        spec=spec,
+                        requested_lots=None if config.risk_sizing else config.lots,
+                        max_lots=config.max_lots,
+                    )
+                    if not dec.approved:
+                        rejected += 1
+                        reject_reasons[dec.reason.value] = (
+                            reject_reasons.get(dec.reason.value, 0) + 1
+                        )
+                        continue
+                    lots = dec.lots
+                    rengine.register_open(symbol, lots, dec.risk_usd)
+                elif config.risk_sizing:
+                    lots = size_lots(
+                        balance * config.max_risk_per_trade_pct / 100,
+                        dist,
+                        fill,
+                        spec,
+                        config.lot_value_scale,
+                        config.max_lots,
+                    )
+                    if lots <= 0:
                         rejected += 1
                         continue
                 elif config.enforce_risk_limit:
@@ -224,6 +256,17 @@ def run_backtest(
             equity.append(balance)
             equity_times.append(times[i])
             break
+        if rengine is not None:
+            events = rengine.update_equity(eq, times[i])
+            if "kill_switch" in events:
+                if pos is not None:  # flatten at this candle's close, paying the spread
+                    exit_px = c - slip if pos.side == Side.LONG else c + spread + slip
+                    close(i, exit_px, "kill_switch")
+                    eq = balance
+                halted = "kill_switch"
+                equity.append(eq)
+                equity_times.append(times[i])
+                break
         equity.append(eq)
         equity_times.append(times[i])
 
@@ -272,4 +315,5 @@ def run_backtest(
         halted_reason=halted,
         ignored_entry_signals=ignored,
         rejected_over_risk=rejected,
+        reject_reasons=reject_reasons,
     )

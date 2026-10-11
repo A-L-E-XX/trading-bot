@@ -20,6 +20,7 @@ from tradingbot.backtesting.costs import CostModel
 from tradingbot.backtesting.engine import BacktestConfig, BacktestResult, run_backtest
 from tradingbot.backtesting.instruments import InstrumentSpec
 from tradingbot.features import compute_features
+from tradingbot.risk import RiskLimits
 from tradingbot.strategies import StrategyDef, get_strategy_def
 
 CHECKS = (
@@ -127,6 +128,7 @@ class _Runner:
             max_drawdown_limit_pct=self.app.account.max_drawdown_pct,
             max_risk_per_trade_pct=self.app.risk.max_risk_per_trade_pct,
             enforce_risk_limit=True,
+            risk_limits=RiskLimits.from_config(self.app.risk),
             lot_value_scale=self.app.account.lot_value_scale,
             risk_sizing=self.app.account.risk_sizing,
             max_lots=self.app.account.max_lots,

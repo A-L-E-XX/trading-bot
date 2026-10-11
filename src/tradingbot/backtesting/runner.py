@@ -19,6 +19,7 @@ from tradingbot.backtesting.instruments import InstrumentSpec  # noqa: E402
 from tradingbot.config import DEFAULT_CONFIG_PATH, AppConfig  # noqa: E402
 from tradingbot.data.storage import DatasetStore  # noqa: E402
 from tradingbot.features import compute_features  # noqa: E402
+from tradingbot.risk import RiskLimits  # noqa: E402
 from tradingbot.strategies import get_strategy_def  # noqa: E402
 
 DEFAULT_SPECS_PATH = DEFAULT_CONFIG_PATH.parent / "instrument_specs.json"
@@ -82,6 +83,11 @@ def run_one(
         max_drawdown_limit_pct=app.account.max_drawdown_pct,
         max_risk_per_trade_pct=app.risk.max_risk_per_trade_pct,
         enforce_risk_limit=enforce_risk_limit,
+        risk_limits=(
+            RiskLimits.from_config(app.risk)
+            if (enforce_risk_limit or app.account.risk_sizing)
+            else None
+        ),
         lot_value_scale=app.account.lot_value_scale,
         risk_sizing=app.account.risk_sizing,
         max_lots=app.account.max_lots,
@@ -110,6 +116,7 @@ def run_one(
         "halted_reason": result.halted_reason,
         "ignored_entry_signals": result.ignored_entry_signals,
         "rejected_over_risk": result.rejected_over_risk,
+        "reject_reasons": result.reject_reasons,
         "enforce_risk_limit": enforce_risk_limit,
         "metrics": result.metrics,
     }
