@@ -67,7 +67,7 @@ def test_invalid_data_is_not_saved(tmp_path, start, end):
 
 def test_unsupported_timeframe(tmp_path, start, end):
     with pytest.raises(ValueError):
-        build_dataset(SyntheticCollector(), "EURUSD", "5m", start, end, DatasetStore(tmp_path))
+        build_dataset(SyntheticCollector(), "EURUSD", "2h", start, end, DatasetStore(tmp_path))
 
 
 def test_synthetic_is_deterministic_and_seed_dependent(start, end):

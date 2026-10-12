@@ -28,6 +28,8 @@ from tradingbot.data.collectors.mt5 import MT5Collector, MT5Error
 from tradingbot.execution.paper import PaperEngine
 
 TF_DELTA = {
+    "1m": pd.Timedelta(minutes=1),
+    "5m": pd.Timedelta(minutes=5),
     "15m": pd.Timedelta(minutes=15),
     "1h": pd.Timedelta(hours=1),
     "4h": pd.Timedelta(hours=4),
