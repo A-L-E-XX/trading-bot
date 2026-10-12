@@ -121,6 +121,19 @@ def test_detects_off_hour_timestamp(ohlcv):
     assert "off_hour_timestamps" in validate_ohlcv(bad, "BTCUSD", "1h").codes()
 
 
+def test_15_minute_candles_are_not_off_hour_but_misaligned_ones_are():
+    idx = pd.date_range("2024-03-04 08:00", periods=40, freq="15min", tz="UTC")
+    df = pd.DataFrame(
+        {"open": 10.0, "high": 11.0, "low": 9.0, "close": 10.0, "volume": 1.0}, index=idx
+    )
+    assert "off_hour_timestamps" not in validate_ohlcv(df, "USTEC", "15m").codes()
+    moved = df.copy()
+    shifted = moved.index.to_series()
+    shifted.iloc[5] = shifted.iloc[5] + pd.Timedelta(minutes=7)
+    moved.index = pd.DatetimeIndex(shifted)
+    assert "off_hour_timestamps" in validate_ohlcv(moved, "USTEC", "15m").codes()
+
+
 def test_small_gap_is_warning_large_gap_is_error(ohlcv):
     few = ohlcv.drop(ohlcv.index[[10, 11]])
     report = validate_ohlcv(few, "BTCUSD", "1h")

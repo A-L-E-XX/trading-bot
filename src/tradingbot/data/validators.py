@@ -15,7 +15,7 @@ from tradingbot.data.calendar import (
     slot_name,
 )
 from tradingbot.data.normalizer import OHLCV_COLUMNS
-from tradingbot.timeframes import timeframe_freq
+from tradingbot.timeframes import TIMEFRAME_SECONDS, timeframe_freq
 
 Severity = Literal["error", "warning"]
 
@@ -131,12 +131,13 @@ def validate_ohlcv(
     )
     steps_back = np.asarray(idx[1:] < idx[:-1])
     add("out_of_order", "error", steps_back.sum(), "timestamps not in ascending order")
-    off_hour = np.asarray((idx.minute != 0) | (idx.second != 0))
+    step_min = max(1, min(60, TIMEFRAME_SECONDS[timeframe] // 60))  # 15 for 15m, 60 otherwise
+    off_hour = np.asarray((idx.minute % step_min != 0) | (idx.second != 0))
     add(
         "off_hour_timestamps",
         "error",
         off_hour.sum(),
-        "candles must start on the hour",
+        "candles must start on a timeframe boundary (the hour for 1h and above)",
         first_examples(off_hour),
     )
 
