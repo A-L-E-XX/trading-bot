@@ -52,6 +52,20 @@ atr_period = 14
 atr_stop_mult = 1.0            # stop = 1 ATR; exit on the opposite volume-confirmed candle
 allow_short = true
 
+[strategy_v4]
+# Opening-range breakout scalper, OUR interpretation of the ORB video (added 2026-10-12). Values
+# fixed BEFORE any out-of-sample look. Intended for US indices on a 5m chart.
+name = "orb_scalper"
+version = "1.0.0"
+timezone = "America/New_York"  # daylight-saving aware; never a fixed UTC offset
+open_minute = 570              # 09:30 local: US cash open
+range_minutes = 30             # opening range = 09:30-10:00
+entry_window_minutes = 120     # first breakout close between 10:00 and 12:00, one trade per day
+flatten_minute = 955           # 15:55 local: close any open trade
+min_range_atr = 2.0            # skip a day if the opening range is under 2 ATR (too narrow)
+atr_period = 14
+allow_short = true
+
 [costs]
 # Spread comes from config/instrument_specs.json (Exness demo, `tb-data specs`). Costs are modelled
 # as bid/ask: buys fill at ask (bid + spread), sells at bid, plus slippage on every fill.

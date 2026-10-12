@@ -36,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="tb-paper", description=__doc__)
     sub = p.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run", help="paper trade on live demo candles")
-    r.add_argument("--strategy", choices=["v1", "v2", "v3"], required=True)
+    r.add_argument("--strategy", choices=["v1", "v2", "v3", "v4"], required=True)
     r.add_argument("--symbol", required=True)
     r.add_argument("--timeframe", choices=["1m", "5m", "15m", "1h", "4h", "1d"], required=True)
     r.add_argument("--balance", type=float, help="starting paper balance (default: config)")

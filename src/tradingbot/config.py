@@ -84,6 +84,21 @@ class StrategyV3Config(BaseModel):
     allow_short: bool = True
 
 
+class StrategyV4Config(BaseModel):
+    """Opening-range breakout scalper (our interpretation of the ORB video, docs/strategy_v4.md)."""
+
+    name: str
+    version: str
+    timezone: str
+    open_minute: int = Field(ge=0, lt=1440)  # session open, minutes after local midnight
+    range_minutes: int = Field(gt=0)  # opening range length
+    entry_window_minutes: int = Field(gt=0)  # entries allowed this long after the range ends
+    flatten_minute: int = Field(gt=0, lt=1440)  # force exit at this local time
+    min_range_atr: float = Field(gt=0)  # skip days where the range is smaller than this many ATR
+    atr_period: int = Field(gt=0)
+    allow_short: bool = True
+
+
 class CostsConfig(BaseModel):
     spread_multiplier: float = Field(ge=0)
     slippage_spread_fraction: float = Field(ge=0)
@@ -117,6 +132,7 @@ class AppConfig(BaseModel):
     strategy_v1: StrategyV1Config
     strategy_v2: StrategyV2Config
     strategy_v3: StrategyV3Config
+    strategy_v4: StrategyV4Config
     costs: CostsConfig
     risk: RiskConfig
     research_gate: ResearchGateConfig

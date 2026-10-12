@@ -9,6 +9,7 @@ from tradingbot.config import AppConfig
 from tradingbot.features import FeatureParams
 from tradingbot.strategies.base import Strategy
 from tradingbot.strategies.mean_reversion import MeanReversionBBStrategy
+from tradingbot.strategies.orb_scalper import OrbScalperStrategy
 from tradingbot.strategies.strategy_v1 import EmaTrendAtrStrategy
 from tradingbot.strategies.vpa_breakout import VPABreakoutStrategy
 
@@ -46,6 +47,13 @@ REGISTRY: dict[str, StrategyDef] = {
         VPABreakoutStrategy,
         FeatureParams.from_v3,
         ("range_window", "vol_mult", "max_range_atr", "atr_stop_mult"),
+    ),
+    "v4": StrategyDef(
+        "v4",
+        "strategy_v4",
+        OrbScalperStrategy,
+        FeatureParams.from_v4,
+        ("range_minutes", "entry_window_minutes", "min_range_atr"),
     ),
 }
 

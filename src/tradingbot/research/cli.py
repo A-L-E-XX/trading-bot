@@ -34,7 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--specs", default=str(DEFAULT_SPECS_PATH))
     p.add_argument("--out-dir", default="outputs/research")
     p.add_argument("--oos-fraction", type=float, default=0.4, help="share of history held out")
-    p.add_argument("--strategy", choices=["v1", "v2", "v3"], default="v1")
+    p.add_argument("--strategy", choices=["v1", "v2", "v3", "v4"], default="v1")
     p.add_argument("--mc-sims", type=int, default=2000)
     p.add_argument("--balance", type=float, help="starting balance, e.g. 20")
     p.add_argument(
