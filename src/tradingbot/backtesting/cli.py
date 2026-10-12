@@ -30,7 +30,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="tb-backtest", description=__doc__)
     p.add_argument("--symbols", nargs="+", help="default: all symbols in config")
     p.add_argument(
-        "--timeframes", nargs="+", choices=["15m", "1h", "4h", "1d"], help="default: all"
+        "--timeframes",
+        nargs="+",
+        choices=["1m", "5m", "15m", "1h", "4h", "1d"],
+        help="default: all",
     )
     p.add_argument(
         "--start", help="UTC date; only trade from here (features still use earlier data)"

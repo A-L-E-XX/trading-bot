@@ -178,7 +178,7 @@ def build_parser() -> argparse.ArgumentParser:
     d = sub.add_parser("download", help="build datasets")
     d.add_argument("--source", choices=["mt5", "csv", "synthetic"], required=True)
     d.add_argument("--symbols", nargs="+")
-    d.add_argument("--timeframes", nargs="+", choices=["15m", "1h", "4h", "1d"])
+    d.add_argument("--timeframes", nargs="+", choices=["1m", "5m", "15m", "1h", "4h", "1d"])
     d.add_argument("--start", default="2020-01-01", help="UTC date, e.g. 2020-01-01")
     d.add_argument("--end", help="UTC date (default: now)")
     d.add_argument("--csv-dir")

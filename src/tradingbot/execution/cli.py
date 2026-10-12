@@ -38,7 +38,7 @@ def build_parser() -> argparse.ArgumentParser:
     r = sub.add_parser("run", help="paper trade on live demo candles")
     r.add_argument("--strategy", choices=["v1", "v2", "v3"], required=True)
     r.add_argument("--symbol", required=True)
-    r.add_argument("--timeframe", choices=["15m", "1h", "4h", "1d"], required=True)
+    r.add_argument("--timeframe", choices=["1m", "5m", "15m", "1h", "4h", "1d"], required=True)
     r.add_argument("--balance", type=float, help="starting paper balance (default: config)")
     r.add_argument("--lot-scale", type=float, help="cent account: 0.01")
     r.add_argument("--risk-sizing", action="store_true")

@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "default.toml"
 
-Timeframe = Literal["15m", "1h", "4h", "1d"]
+Timeframe = Literal["1m", "5m", "15m", "1h", "4h", "1d"]
 
 
 class AccountConfig(BaseModel):

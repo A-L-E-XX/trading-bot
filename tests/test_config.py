@@ -80,3 +80,13 @@ def test_15_minute_timeframe_is_supported():
 
     assert timeframe_delta("15m") == pd.Timedelta(minutes=15)
     assert timeframe_freq("15m") == "15min"
+
+
+def test_scalping_timeframes_are_supported():
+    import pandas as pd
+
+    from tradingbot.timeframes import timeframe_delta, timeframe_freq
+
+    assert timeframe_delta("1m") == pd.Timedelta(minutes=1)
+    assert timeframe_delta("5m") == pd.Timedelta(minutes=5)
+    assert timeframe_freq("5m") == "5min"

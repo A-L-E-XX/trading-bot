@@ -10,7 +10,7 @@ import pandas as pd
 
 from tradingbot.data.normalizer import to_utc
 
-_MT5_TF = {"15m": "M15", "1h": "H1", "4h": "H4", "1d": "D1"}
+_MT5_TF = {"1m": "M1", "5m": "M5", "15m": "M15", "1h": "H1", "4h": "H4", "1d": "D1"}
 
 
 class CSVCollector:
