@@ -42,7 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--data-dir", help="dataset folder (default: TB_DATA_DIR / data_store)")
     p.add_argument("--specs", default=str(DEFAULT_SPECS_PATH), help="broker contract specs JSON")
     p.add_argument("--out-dir", default="outputs/backtests", help="where trades/equity/report go")
-    p.add_argument("--strategy", choices=["v1", "v2"], default="v1")
+    p.add_argument("--strategy", choices=["v1", "v2", "v3"], default="v1")
     p.add_argument("--no-plots", action="store_true")
     p.add_argument(
         "--enforce-risk",

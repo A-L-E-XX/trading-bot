@@ -71,6 +71,19 @@ class StrategyV2Config(BaseModel):
     allow_short: bool = True
 
 
+class StrategyV3Config(BaseModel):
+    """Volume-price breakout (our interpretation of the VPA video, see docs/strategy_v3.md)."""
+
+    name: str
+    version: str
+    range_window: int = Field(gt=1)
+    vol_mult: float = Field(gt=0)
+    max_range_atr: float = Field(gt=0)
+    atr_period: int = Field(gt=0)
+    atr_stop_mult: float = Field(gt=0)
+    allow_short: bool = True
+
+
 class CostsConfig(BaseModel):
     spread_multiplier: float = Field(ge=0)
     slippage_spread_fraction: float = Field(ge=0)
@@ -103,6 +116,7 @@ class AppConfig(BaseModel):
     timeframes: TimeframesConfig
     strategy_v1: StrategyV1Config
     strategy_v2: StrategyV2Config
+    strategy_v3: StrategyV3Config
     costs: CostsConfig
     risk: RiskConfig
     research_gate: ResearchGateConfig

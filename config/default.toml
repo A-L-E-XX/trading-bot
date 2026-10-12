@@ -39,6 +39,18 @@ atr_period = 14
 atr_stop_mult = 1.5            # stop = entry -/+ 1.5 * ATR; exit when price returns to the mean
 allow_short = true
 
+[strategy_v3]
+# Volume-price breakout, OUR interpretation of the VPA video (added 2026-10-12). Values fixed BEFORE
+# any out-of-sample look. Volume is MT5 tick volume, not exchange volume.
+name = "vpa_breakout"
+version = "1.0.0"
+range_window = 20              # accumulation/distribution range = previous 20 candles
+vol_mult = 1.5                 # "high volume" = volume >= 1.5 x its 20-candle average
+max_range_atr = 6.0            # range must be tight: (high - low) of the range <= 6 ATR
+atr_period = 14
+atr_stop_mult = 1.0            # stop = 1 ATR; exit on the opposite volume-confirmed candle
+allow_short = true
+
 [costs]
 # Spread comes from config/instrument_specs.json (Exness demo, `tb-data specs`). Costs are modelled
 # as bid/ask: buys fill at ask (bid + spread), sells at bid, plus slippage on every fill.

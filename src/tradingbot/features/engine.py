@@ -22,6 +22,8 @@ FEATURE_COLUMNS = [
     "atr",
     "volatility",
     "volume_ratio",
+    "range_high",
+    "range_low",
 ]
 # Strategy V1 needs these; the `ready` flag is True only once all of them are valid.
 STRATEGY_V1_REQUIRED = ["ema_fast", "ema_slow", "ema_trend", "atr"]
@@ -37,6 +39,7 @@ class FeatureParams:
     sma_period: int = 20
     volatility_window: int = 20
     volume_window: int = 20
+    range_window: int = 20
 
     @classmethod
     def from_config(cls, strategy: StrategyV1Config) -> FeatureParams:
@@ -54,6 +57,10 @@ class FeatureParams:
             rsi_period=strategy.rsi_period,
             atr_period=strategy.atr_period,
         )
+
+    @classmethod
+    def from_v3(cls, strategy) -> FeatureParams:
+        return cls(atr_period=strategy.atr_period, range_window=strategy.range_window)
 
     @property
     def strategy_warmup_rows(self) -> int:
@@ -86,5 +93,12 @@ def compute_features(ohlcv: pd.DataFrame, params: FeatureParams | None = None) -
     out["atr"] = ind.atr(high, low, close, params.atr_period)
     out["volatility"] = ind.volatility(out["log_ret"], params.volatility_window)
     out["volume_ratio"] = ind.volume_ratio(volume, params.volume_window)
+    # Range of the PREVIOUS range_window candles (shifted so the current candle is not in it).
+    out["range_high"] = (
+        out["high"].rolling(params.range_window, min_periods=params.range_window).max().shift(1)
+    )
+    out["range_low"] = (
+        out["low"].rolling(params.range_window, min_periods=params.range_window).min().shift(1)
+    )
     out["ready"] = out[STRATEGY_V1_REQUIRED].notna().all(axis=1)
     return out
