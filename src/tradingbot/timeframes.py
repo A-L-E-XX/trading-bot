@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-TIMEFRAME_SECONDS: dict[str, int] = {"1h": 3600, "4h": 4 * 3600, "1d": 24 * 3600}
-_PANDAS_FREQ: dict[str, str] = {"1h": "1h", "4h": "4h", "1d": "1D"}
+TIMEFRAME_SECONDS: dict[str, int] = {"15m": 900, "1h": 3600, "4h": 4 * 3600, "1d": 24 * 3600}
+_PANDAS_FREQ: dict[str, str] = {"15m": "15min", "1h": "1h", "4h": "4h", "1d": "1D"}
 
 
 def check_timeframe(timeframe: str) -> str:

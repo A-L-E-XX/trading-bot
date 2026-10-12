@@ -18,8 +18,8 @@ def test_default_config_loads_and_matches_decisions():
     assert "BTCUSD" in cfg.instruments.symbols
     assert "XAUUSD" in cfg.instruments.symbols
     assert (
-        len(cfg.instruments.symbols) == 11
-    )  # BTC + XAU + 5 majors + NZDUSD, USDCHF, XAGUSD, ETHUSD
+        len(cfg.instruments.symbols) == 14
+    )  # BTC + XAU + 5 majors + NZDUSD, USDCHF, XAGUSD, ETHUSD + 3 indices (US30, USTEC, US500)
 
 
 def test_broker_symbol_suffix():
@@ -71,3 +71,12 @@ def test_example_env_file_loads():
 
     example = Path(__file__).resolve().parents[1] / ".env.example"
     assert Settings(_env_file=example).mt5_login is None
+
+
+def test_15_minute_timeframe_is_supported():
+    import pandas as pd
+
+    from tradingbot.timeframes import timeframe_delta, timeframe_freq
+
+    assert timeframe_delta("15m") == pd.Timedelta(minutes=15)
+    assert timeframe_freq("15m") == "15min"

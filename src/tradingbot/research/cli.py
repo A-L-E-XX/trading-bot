@@ -29,7 +29,7 @@ _NOTE = (
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="tb-research", description=__doc__)
     p.add_argument("--symbols", nargs="+")
-    p.add_argument("--timeframes", nargs="+", choices=["1h", "4h", "1d"])
+    p.add_argument("--timeframes", nargs="+", choices=["15m", "1h", "4h", "1d"])
     p.add_argument("--data-dir")
     p.add_argument("--specs", default=str(DEFAULT_SPECS_PATH))
     p.add_argument("--out-dir", default="outputs/research")

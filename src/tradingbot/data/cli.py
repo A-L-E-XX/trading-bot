@@ -123,10 +123,11 @@ def cmd_specs(args, cfg, settings) -> int:
     col = _mt5_collector(args, cfg, settings)
     try:
         col.connect()
+        wanted = args.symbols or cfg.instruments.symbols
         out = {
             "generated_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "account": col.account_summary(),
-            "symbols": {s: col.symbol_specs(s) for s in cfg.instruments.symbols},
+            "symbols": {s: col.symbol_specs(s) for s in wanted},
         }
     except MT5Error as exc:
         print(f"MT5 error: {exc}", file=sys.stderr)
@@ -135,6 +136,9 @@ def cmd_specs(args, cfg, settings) -> int:
         col.close()
     path = Path(args.out)
     path.parent.mkdir(parents=True, exist_ok=True)
+    if args.merge and path.exists():  # keep symbols that are not re-exported this time
+        old = json.loads(path.read_text(encoding="utf-8")).get("symbols", {})
+        out["symbols"] = {**old, **out["symbols"]}
     path.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     acct = out["account"]
     print(f"Account: {acct['currency']} balance={acct['balance']} leverage=1:{acct['leverage']}")
@@ -168,11 +172,13 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("mt5-check", help="check MT5 demo connection and symbol names")
     sp = sub.add_parser("specs", help="save broker contract specs (lot size, spread...) to JSON")
     sp.add_argument("--out", default="config/instrument_specs.json")
+    sp.add_argument("--symbols", nargs="+", help="only these symbols (default: all configured)")
+    sp.add_argument("--merge", action="store_true", help="keep other symbols already in the file")
 
     d = sub.add_parser("download", help="build datasets")
     d.add_argument("--source", choices=["mt5", "csv", "synthetic"], required=True)
     d.add_argument("--symbols", nargs="+")
-    d.add_argument("--timeframes", nargs="+", choices=["1h", "4h", "1d"])
+    d.add_argument("--timeframes", nargs="+", choices=["15m", "1h", "4h", "1d"])
     d.add_argument("--start", default="2020-01-01", help="UTC date, e.g. 2020-01-01")
     d.add_argument("--end", help="UTC date (default: now)")
     d.add_argument("--csv-dir")

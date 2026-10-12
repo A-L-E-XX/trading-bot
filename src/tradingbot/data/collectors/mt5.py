@@ -13,8 +13,18 @@ import pandas as pd
 
 from tradingbot.data.normalizer import to_utc
 
-_TF_ATTR = {"1h": "TIMEFRAME_H1", "4h": "TIMEFRAME_H4", "1d": "TIMEFRAME_D1"}
-_CHUNK_DAYS = {"1h": 365, "4h": 4 * 365, "1d": 10 * 365}  # keeps each request well under bar limits
+_TF_ATTR = {
+    "15m": "TIMEFRAME_M15",
+    "1h": "TIMEFRAME_H1",
+    "4h": "TIMEFRAME_H4",
+    "1d": "TIMEFRAME_D1",
+}
+_CHUNK_DAYS = {
+    "15m": 90,
+    "1h": 365,
+    "4h": 4 * 365,
+    "1d": 10 * 365,
+}  # keeps each request well under bar limits
 
 
 class MT5Error(RuntimeError):
