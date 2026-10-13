@@ -259,6 +259,7 @@ def test_saved_last_bar_reads_the_state_file(tmp_path, df):
 # ---------------------------------------------------------------- safety + CLI
 def test_there_is_no_code_that_can_send_orders_to_the_broker():
     forbidden = ("order_send", "order_check", "order_calc", "positions_close", "Buy(", "Sell(")
+    # execution/broker.py (M11) is the one module allowed to send orders: see test_demo_execution
     for rel in ("data/collectors/mt5.py", "execution/live.py", "execution/paper.py",
                 "execution/cli.py"):  # fmt: skip
         text = (SRC / rel).read_text(encoding="utf-8")

@@ -2,7 +2,8 @@
 
 run      connect to your MT5 DEMO account, then paper trade one strategy on one symbol/timeframe
 status   show the saved state of a paper session
-Read-only: it never sends an order to the broker.
+By default read-only. With --demo-orders it also mirrors the paper engine's trades on your MT5
+DEMO account (stop on every order, demo accounts only). ``flatten`` closes our demo positions.
 """
 
 from __future__ import annotations
@@ -57,6 +58,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="MT5 server time minus UTC in hours; use the SAME value as for tb-data download",
     )
     r.add_argument("--server-timezone")
+    r.add_argument(
+        "--demo-orders", action="store_true", help="also place the trades on the MT5 DEMO account"
+    )
+    r.add_argument("--magic", type=int, default=770001, help="order tag; only these are touched")
+    r.add_argument("--max-demo-lots", type=float, default=1.0, help="hard cap on lots per order")
+    f = sub.add_parser("flatten", help="PANIC: close this bot's demo positions on a symbol")
+    f.add_argument("--symbol", required=True)
+    f.add_argument("--magic", type=int, default=770001)
+    f.add_argument("--server-utc-offset", type=float, default=0.0)
     s = sub.add_parser("status", help="show a saved session")
     s.add_argument("--name", required=True)
     s.add_argument("--out-dir", default="outputs/paper")
@@ -83,6 +93,30 @@ def cmd_status(args) -> int:
         print(f"equity ${r['equity']:.2f} (peak ${r['peak_equity']:.2f}), "
               f"kill switch: {r['kill_switch']}, daily halt: {r['daily_halt']}")  # fmt: skip
     return 0
+
+
+def cmd_flatten(args) -> int:
+    from tradingbot.execution.broker import DemoBroker
+
+    app, settings = load_config(), load_settings()
+    col = MT5Collector(
+        login=settings.mt5_login,
+        password=settings.mt5_password.get_secret_value() if settings.mt5_password else None,
+        server=settings.mt5_server,
+        path=settings.mt5_path,
+        symbol_suffix=app.instruments.symbol_suffix,
+        server_utc_offset_hours=args.server_utc_offset,
+    )
+    try:
+        col.connect()
+        done = DemoBroker(col, args.symbol, magic=args.magic).close_all()
+        print(f"Closed {len(done)} position(s) on {args.symbol} (magic {args.magic}).")
+        return 0
+    except MT5Error as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        col.close()
 
 
 def cmd_run(args) -> int:
@@ -142,9 +176,20 @@ def cmd_run(args) -> int:
             "session_started", engine.last_bar_time, strategy=args.strategy,
             timeframe=args.timeframe, balance=engine.balance, once=bool(args.once),
         )  # fmt: skip
+        hook = None
+        if args.demo_orders:
+            from tradingbot.execution.broker import DemoBroker
+            from tradingbot.execution.demo import DemoExecutor
+
+            broker = DemoBroker(
+                col, args.symbol, magic=args.magic, max_lots=args.max_demo_lots,
+                max_risk_pct=app.risk.max_risk_per_trade_pct,
+            )  # fmt: skip
+            hook = DemoExecutor(broker, engine, folder / "demo_state.json").sync
+            print(f"DEMO ORDERS ON: trades are mirrored on your demo account (magic {args.magic}).")
         try:
             result = run_session(col, engine, poll_seconds=args.poll_seconds,
-                                 max_polls=1 if args.once else None)  # fmt: skip
+                                 max_polls=1 if args.once else None, after_poll=hook)  # fmt: skip
         except KeyboardInterrupt:
             print("\nStopped by you. State is saved; run the same command to resume.")
             return 0
@@ -161,7 +206,9 @@ def cmd_run(args) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    return cmd_status(args) if args.cmd == "status" else cmd_run(args)
+    if args.cmd == "status":
+        return cmd_status(args)
+    return cmd_flatten(args) if args.cmd == "flatten" else cmd_run(args)
 
 
 if __name__ == "__main__":

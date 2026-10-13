@@ -43,4 +43,5 @@ See [docs/data.md](docs/data.md) for real MT5 data.
 - [x] M8 Risk engine ([docs/risk_engine.md](docs/risk_engine.md))
 - [x] M9 Paper engine ([docs/paper_engine.md](docs/paper_engine.md))
 - [x] M10 Read-only MT5 live feed ([docs/live_feed.md](docs/live_feed.md))
-- [ ] M11 – M14 - order management, monitoring, security, release gate
+- [x] M11 Demo-account order execution ([docs/demo_execution.md](docs/demo_execution.md))
+- [ ] M12 – M14 - monitoring, security, release gate

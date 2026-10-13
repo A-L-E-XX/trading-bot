@@ -81,6 +81,7 @@ def run_session(
     max_polls: int | None = None,
     sleep: Callable[[float], None] = time.sleep,
     now: Callable[[], pd.Timestamp] = lambda: pd.Timestamp.now(tz="UTC"),
+    after_poll: Callable[[], None] | None = None,
 ) -> SessionResult:
     """Poll for new closed candles and feed them to the engine until stopped.
 
@@ -103,6 +104,11 @@ def run_session(
                 engine.note("spread_check", fresh.index[-1], live_spread=quote["spread"],
                             model_spread=model, ratio=ratio)  # fmt: skip
             consecutive = 0
+            if after_poll is not None:
+                try:
+                    after_poll()  # e.g. mirror the engine's decisions on the demo account
+                except MT5Error as exc:  # a broker problem is logged, it never stops the feed
+                    engine.note("demo_error", engine.last_bar_time, error=str(exc))
         except (MT5Error, FeedError) as exc:
             errors += 1
             consecutive += 1
